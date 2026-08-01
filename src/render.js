@@ -410,6 +410,40 @@ const ICONURL={};
 })();
 
 /* ---------------- dad + mower art ---------------- */
+function drawBody(c,L,f,step){
+  c.fillStyle='#e8c49a';
+  c.fillRect(-8.5,12,6.5,10+step*2); c.fillRect(2,12,6.5,10-step*2);
+  c.fillStyle='#f5f5f5';
+  c.fillRect(-8.5,18+step*2,6.5,5); c.fillRect(2,18-step*2,6.5,5);
+  c.fillStyle=L.sock;
+  c.fillRect(-8.5,19+step*2,6.5,1.4); c.fillRect(2,19-step*2,6.5,1.4);
+  function shoe(sx,sy){
+    c.fillStyle='#f5f5f5'; roundedRectPath(c,sx,sy,13,6,2.5); c.fill();
+    c.fillStyle='#c9cdd4'; c.fillRect(sx,sy+5,13,3);
+    c.strokeStyle='#8b93a3'; c.lineWidth=1.6;
+    c.beginPath(); c.moveTo(sx+3,sy+5); c.lineTo(sx+6.5,sy+1); c.lineTo(sx+10,sy+5); c.stroke();
+  }
+  shoe(-13,22+step*2); shoe(1,22-step*2);
+  c.fillStyle=L.shorts; roundedRectPath(c,-11,3,22,11,2); c.fill();
+  c.fillStyle=L.shorts2; c.fillRect(-11,7,5,6); c.fillRect(6,7,5,6);
+  c.fillStyle=L.shirt; roundedRectPath(c,-11,-13,22,17,3); c.fill();
+  c.fillStyle=L.shirt2; c.fillRect(-2,-13,4,9);
+  c.fillStyle='#e8e4da';
+  c.beginPath(); c.moveTo(-6,-13); c.lineTo(-1,-8); c.lineTo(-1,-13); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(6,-13); c.lineTo(1,-8); c.lineTo(1,-13); c.closePath(); c.fill();
+  c.fillStyle='#6b4f2a'; c.fillRect(-11,2,22,3.5);
+  c.fillStyle='#d4af37'; c.fillRect(-2,2,4,3.5);
+  const sw=step*3;
+  c.fillStyle=L.shirt; c.fillRect(-15,-10+sw*0.4,4.5,10); c.fillRect(10.5,-10-sw*0.4,4.5,10);
+  c.fillStyle='#e8c49a'; c.fillRect(-15,0+sw*0.4,4.5,5); c.fillRect(10.5,0-sw*0.4,4.5,5);
+  c.fillStyle='#e8c49a'; roundedRectPath(c,-8,-28,16,16,4); c.fill();
+  c.fillStyle='#dcb387'; c.fillRect(f===1?-9:7,-22,2.5,4);
+  c.fillStyle=L.hair; c.fillRect(-8,-26,3,8); c.fillRect(5,-26,3,8);
+  c.fillStyle=L.top; c.beginPath(); c.ellipse(0,-27,7,3.2,0,Math.PI,0); c.fill();
+  c.fillStyle='#2a2a2a';
+  c.fillRect(f===1?-2.5:-5,-21,2.6,2.6); c.fillRect(f===1?3:0.5,-21,2.6,2.6);
+  if(L.must){ c.fillStyle=L.must; c.fillRect(-4,-15.5,8,2.2); }
+}
 function drawDad(P){
   const x=P.x, y=P.y, f=P.face;
   const L=Object.assign({},LOOKS.dad,LOOKS[G.champ]||{});
@@ -419,38 +453,7 @@ function drawDad(P){
   if(blink) ctx.globalAlpha=0.45;
   ctx.fillStyle='rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.ellipse(0,30,17,5.5,0,0,TAU); ctx.fill();
-  ctx.fillStyle='#e8c49a';
-  ctx.fillRect(-8.5,12,6.5,10+step*2); ctx.fillRect(2,12,6.5,10-step*2);
-  ctx.fillStyle='#f5f5f5';
-  ctx.fillRect(-8.5,18+step*2,6.5,5); ctx.fillRect(2,18-step*2,6.5,5);
-  ctx.fillStyle=L.sock;
-  ctx.fillRect(-8.5,19+step*2,6.5,1.4); ctx.fillRect(2,19-step*2,6.5,1.4);
-  function shoe(sx,sy){
-    ctx.fillStyle='#f5f5f5'; roundedRectPath(ctx,sx,sy,13,6,2.5); ctx.fill();
-    ctx.fillStyle='#c9cdd4'; ctx.fillRect(sx,sy+5,13,3);
-    ctx.strokeStyle='#8b93a3'; ctx.lineWidth=1.6;
-    ctx.beginPath(); ctx.moveTo(sx+3,sy+5); ctx.lineTo(sx+6.5,sy+1); ctx.lineTo(sx+10,sy+5); ctx.stroke();
-  }
-  shoe(-13,22+step*2); shoe(1,22-step*2);
-  ctx.fillStyle=L.shorts; roundedRectPath(ctx,-11,3,22,11,2); ctx.fill();
-  ctx.fillStyle=L.shorts2; ctx.fillRect(-11,7,5,6); ctx.fillRect(6,7,5,6);
-  ctx.fillStyle=L.shirt; roundedRectPath(ctx,-11,-13,22,17,3); ctx.fill();
-  ctx.fillStyle=L.shirt2; ctx.fillRect(-2,-13,4,9);
-  ctx.fillStyle='#e8e4da';
-  ctx.beginPath(); ctx.moveTo(-6,-13); ctx.lineTo(-1,-8); ctx.lineTo(-1,-13); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(6,-13); ctx.lineTo(1,-8); ctx.lineTo(1,-13); ctx.closePath(); ctx.fill();
-  ctx.fillStyle='#6b4f2a'; ctx.fillRect(-11,2,22,3.5);
-  ctx.fillStyle='#d4af37'; ctx.fillRect(-2,2,4,3.5);
-  const sw=Math.sin(P.bob)*3;
-  ctx.fillStyle=L.shirt; ctx.fillRect(-15,-10+sw*0.4,4.5,10); ctx.fillRect(10.5,-10-sw*0.4,4.5,10);
-  ctx.fillStyle='#e8c49a'; ctx.fillRect(-15,0+sw*0.4,4.5,5); ctx.fillRect(10.5,0-sw*0.4,4.5,5);
-  ctx.fillStyle='#e8c49a'; roundedRectPath(ctx,-8,-28,16,16,4); ctx.fill();
-  ctx.fillStyle='#dcb387'; ctx.fillRect(f===1?-9:7,-22,2.5,4);
-  ctx.fillStyle=L.hair; ctx.fillRect(-8,-26,3,8); ctx.fillRect(5,-26,3,8);
-  ctx.fillStyle=L.top; ctx.beginPath(); ctx.ellipse(0,-27,7,3.2,0,Math.PI,0); ctx.fill();
-  ctx.fillStyle='#2a2a2a';
-  ctx.fillRect(f===1?-2.5:-5,-21,2.6,2.6); ctx.fillRect(f===1?3:0.5,-21,2.6,2.6);
-  if(L.must){ ctx.fillStyle=L.must; ctx.fillRect(-4,-15.5,8,2.2); }
+  drawBody(ctx,L,f,step);
   ctx.restore();
   ctx.globalAlpha=1;
 }
