@@ -180,6 +180,8 @@
   #rerollbtn:disabled, #favorbtn:disabled { opacity:.4; cursor:default; }
   #favorpick { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin-top:12px; }
   #favorpick.hidden { display:none; }
+  #favorhead { grid-column:1/-1; font-size:12px; color:#e0a34d; letter-spacing:.5px; }
+  #shophint { margin-top:8px; font-size:11px; color:#7c8272; letter-spacing:.5px; }
   .favcard { background:#191d17; border:2px solid #4a5044; border-radius:12px; padding:12px 10px;
              cursor:pointer; text-align:center; transition:border-color .08s; }
   .favcard:hover { border-color:#ffd166; }
@@ -331,6 +333,7 @@
       <button id="favorbtn">📞 CALL A NEIGHBOR (free)</button>
       <button id="gowave">START WAVE 2 →</button>
     </div>
+    <div id="shophint">Reroll restocks the shelf for bolts · Calling a neighbor borrows their perk for the next wave, one free call per shop</div>
     <div id="shoppanels">
       <div class="panel" id="statpanel"></div>
       <div class="panel" id="weappanel"></div>

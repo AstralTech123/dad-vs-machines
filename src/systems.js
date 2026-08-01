@@ -65,6 +65,10 @@ function startWave(n){
   }
   // chore contract on non-boss waves from wave 2 on
   G.contract = (n>=2 && !BOSS_WAVES[n]) ? { def:pick(CONTRACTS), prog:0, dmg:false } : null;
+  if(G.contract){
+    const ctxt='🧹 Optional chore: '+G.contract.def.txt+' (pays bolts and XP)';
+    setTimeout(()=>{ if(G.contract) toast(ctxt); }, G.favorApplied?2600:800);
+  }
   G.mode='play'; hide('shop');
   document.getElementById('bosswrap').style.display='none';
   banner('WAVE '+n, flavor(n)); sfx.wave();
@@ -943,7 +947,7 @@ function rollOffers(){
   G.shop.offers=offers;
 }
 function openShop(){
-  G.mode='shop'; G.shop.rerolls=0; G.shop.favorUsed=false;
+  G.mode='shop'; G.shop.rerolls=0; G.shop.favorUsed=false; G.shop.favorPicks=null;
   document.getElementById('favorpick').classList.add('hidden');
   rollOffers(); renderShop(); show('shop');
 }

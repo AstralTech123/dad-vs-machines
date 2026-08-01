@@ -33,11 +33,15 @@ function updateHUD(){
 }
 function buildFavorPick(){
   const box=document.getElementById('favorpick');
-  const others=Object.keys(CHAMPS).filter(k=>k!==G.champ);
-  const picks=[];
-  while(picks.length<3&&others.length){ picks.push(others.splice(Math.floor(Math.random()*others.length),1)[0]); }
-  box.innerHTML='';
-  for(const k of picks){
+  // the 3 neighbors roll ONCE per shop visit; reopening shows the same 3
+  if(!G.shop.favorPicks){
+    const others=Object.keys(CHAMPS).filter(k=>k!==G.champ);
+    const picks=[];
+    while(picks.length<3&&others.length){ picks.push(others.splice(Math.floor(Math.random()*others.length),1)[0]); }
+    G.shop.favorPicks=picks;
+  }
+  box.innerHTML='<div id="favorhead">Whoever answers helps for the next wave only. One call per shop, and these three are who picked up.</div>';
+  for(const k of G.shop.favorPicks){
     const el=document.createElement('div');
     el.className='favcard';
     el.innerHTML=`<img src="${champPortrait(k)}" alt=""><div class="fname">${CHAMPS[k].name}</div>`+
@@ -591,6 +595,16 @@ function drawBody(c,L,f,step){
   c.fillRect(f===1?-2.5:-5,-21,2.6,2.6); c.fillRect(f===1?3:0.5,-21,2.6,2.6);
   if(L.must){ c.fillStyle=L.must; c.fillRect(-4,-15.5,8,2.2); }
 }
+/* small always-on HP bar above the character so eyes stay on the action */
+function drawPlayerHP(P){
+  if(G.mode==='menu') return;
+  const frac=clamp(G.hp/G.stats.maxHP,0,1);
+  const w=34, y=P.y-(P.mowT>0?52:44);
+  ctx.fillStyle='rgba(0,0,0,0.55)';
+  ctx.fillRect(P.x-w/2-1, y-1, w+2, 6);
+  ctx.fillStyle = frac<0.3?'#ff5a5f':frac<0.6?'#ffd166':'#9be06f';
+  ctx.fillRect(P.x-w/2, y, w*frac, 4);
+}
 function drawDad(P){
   const x=P.x, y=P.y, f=P.face;
   const L=Object.assign({},LOOKS.dad,LOOKS[G.champ]||{});
@@ -1116,6 +1130,7 @@ function draw(){
     if(!G.player.dead){
       if(G.player.mowT>0) drawMower(G.player);
       else { drawDad(G.player); drawWeapons(); }
+      drawPlayerHP(G.player);
     }
     for(const b of G.bullets) drawBullet(b);
     for(const b of G.ebullets){
