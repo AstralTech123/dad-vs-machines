@@ -14,14 +14,46 @@ function updateHUD(){
   document.getElementById('matcount').textContent='🔩 '+G.mats;
   document.getElementById('killcount').textContent=G.kills+' machines scrapped';
   const P=G.player;
-  document.getElementById('ultfill').style.width=(P.ult/ULT_NEED*100)+'%';
+  const un=G.stats.ultNeed||ULT_NEED;
+  document.getElementById('ultfill').style.width=(P.ult/un*100)+'%';
   const uw=document.getElementById('ultwrap');
   const ut=document.getElementById('ulttext');
   if(P.mowT>0){ ut.textContent='MOWING'; uw.className=''; }
-  else if(P.ult>=ULT_NEED){ ut.textContent='🚜 MOWER READY (E)'; uw.className='ready'; }
-  else { ut.textContent='MOWER '+P.ult+'/'+ULT_NEED; uw.className=''; }
+  else if(P.ult>=un){ ut.textContent='🚜 MOWER READY (E)'; uw.className='ready'; }
+  else { ut.textContent='MOWER '+P.ult+'/'+un; uw.className=''; }
   document.getElementById('lvlchip').textContent='LV '+(G.level||1)+' · '+Math.floor(G.xp||0)+'/'+xpNeed(G.level||1)+' XP';
+  const cl=document.getElementById('contractline');
+  if(G.contract){
+    const c=G.contract, d=c.def;
+    const prog = d.key==='flam' ? (FLAM.every(f=>f.up)?'OK':'FAILED')
+               : d.key==='nodmg' ? (c.dmg?'FAILED':'OK')
+               : c.prog+'/'+d.n;
+    cl.textContent='🧹 '+d.txt+' ('+prog+')';
+  } else cl.textContent='';
 }
+function buildFavorPick(){
+  const box=document.getElementById('favorpick');
+  const others=Object.keys(CHAMPS).filter(k=>k!==G.champ);
+  const picks=[];
+  while(picks.length<3&&others.length){ picks.push(others.splice(Math.floor(Math.random()*others.length),1)[0]); }
+  box.innerHTML='';
+  for(const k of picks){
+    const el=document.createElement('div');
+    el.className='favcard';
+    el.innerHTML=`<img src="${champPortrait(k)}" alt=""><div class="fname">${CHAMPS[k].name}</div>`+
+      `<div class="fdesc">${FAVORS[k].desc}</div>`;
+    el.addEventListener('click',()=>{
+      G.favorNext=k; G.shop.favorUsed=true; sfx.buy();
+      box.classList.add('hidden'); renderShop();
+    });
+    box.appendChild(el);
+  }
+  box.classList.remove('hidden');
+}
+document.getElementById('favorbtn').addEventListener('click',()=>{
+  if(G.shop.favorUsed||G.favorNext) return;
+  sfx.click(); buildFavorPick();
+});
 function showLevelUp(){
   show('levelup');
   document.getElementById('lvlsub').textContent='PICK AN UPGRADE'+(G.pendingLvls>1?' ('+G.pendingLvls+' BANKED)':'');

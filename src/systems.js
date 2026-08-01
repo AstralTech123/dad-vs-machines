@@ -29,9 +29,9 @@ function tryDash(){
 }
 function tryMow(){
   const P=G.player;
-  if(G.mode!=='play'||P.dead||P.mowT>0||P.ult<ULT_NEED) return;
-  P.mowT=5; P.ult=0; G.ultToast=false;
-  banner('MOWER TIME','FIVE SECONDS OF PURE YARD WORK');
+  if(G.mode!=='play'||P.dead||P.mowT>0||P.ult<G.stats.ultNeed) return;
+  P.mowT=G.stats.mowDur; P.ult=0; G.ultToast=false;
+  banner('MOWER TIME','PURE YARD WORK');
   sfx.bossroar(); G.cam.shake=Math.min(16,G.cam.shake+8);
   updateHUD();
 }
@@ -54,6 +54,17 @@ function startWave(n){
   if(n>=2){ G.eliteQ.push(dur*0.5);
     if(n>=5) G.eliteQ.push(dur*0.24);
     if(n>=8) G.eliteQ.unshift(dur*0.72); }
+  // neighbor favor: revert last wave's boost, then apply the queued one
+  if(G.favorApplied){ for(const k in G.favorApplied) G.stats[k]-=G.favorApplied[k]; G.favorApplied=null; }
+  if(G.favorNext){
+    const F=FAVORS[G.favorNext];
+    G.favorApplied=Object.assign({},F.deltas);
+    for(const k in F.deltas) G.stats[k]+=F.deltas[k];
+    toast('🤝 '+CHAMPS[G.favorNext].name+' lends a hand this wave');
+    G.favorNext=null;
+  }
+  // chore contract on non-boss waves from wave 2 on
+  G.contract = (n>=2 && !BOSS_WAVES[n]) ? { def:pick(CONTRACTS), prog:0, dmg:false } : null;
   G.mode='play'; hide('shop');
   document.getElementById('bosswrap').style.display='none';
   banner('WAVE '+n, flavor(n)); sfx.wave();
@@ -229,6 +240,7 @@ function damagePlayer(raw){
         hitEnemy(e, G.stats.thorns, Math.atan2(e.y-P.y,e.x-P.x), 160, false);
     }
   }
+  if(G.contract) G.contract.dmg=true;
   if(G.hp<=0){ G.hp=0; P.dead=true; P.deadT=0; playerDeathFX(); }
   updateHUD();
   return true;
@@ -390,9 +402,13 @@ function killEnemy(e){
   G.kills++;
   gainXP(e.key==='boss'||e.key==='algo' ? 30 : e.def.elite ? 12 : e.def.mats);
   const P=G.player;
-  if(P.ult<ULT_NEED){
+  if(P.ult<G.stats.ultNeed){
     P.ult++;
-    if(P.ult>=ULT_NEED && !G.ultToast){ G.ultToast=true; toast('🚜 MOWER READY! Press E'); sfx.combine(); }
+    if(P.ult>=G.stats.ultNeed && !G.ultToast){ G.ultToast=true; toast('🚜 MOWER READY! Press E'); sfx.combine(); }
+  }
+  if(G.contract){
+    if(G.contract.def.key==='swarm' && e.key==='swarm') G.contract.prog++;
+    if(G.contract.def.key==='mow' && e._byMow) G.contract.prog++;
   }
   G.cam.shake=Math.min(14,G.cam.shake+(e.def.r>24?5:1.2));
   if(e.def.r>24) sfx.boom(); else noiseHit(0.09,0.09,1800);
@@ -444,7 +460,9 @@ function updateEnemies(dt){
     e.x+=e.kx*dt; e.y+=e.ky*dt;
     e.kx*=Math.pow(0.002,dt); e.ky*=Math.pow(0.002,dt);
     const a=Math.atan2(P.y-e.y,P.x-e.x), d=Math.hypot(P.x-e.x,P.y-e.y);
-    const mudF = inMud(e.x,e.y)?0.55:1;
+    const inPool=inMud(e.x,e.y);
+    const mudF = inPool?(G.yard.pool>=1?0.36:0.55):1;
+    if(inPool && G.yard.pool>=2){ e.hp-=4*dt; if(e.hp<=0){ killEnemy(e); continue; } }
     const auraF = (G.stats.auraSlow && d<190) ? 1-G.stats.auraSlow : 1;
     const sp = e.spd*mudF*auraF;
     const ai=e.def.ai;
@@ -563,7 +581,7 @@ function updateEnemies(dt){
       }
     }
     if(P.mowT>0 && d < e.def.r+30 && (e._mow===undefined||e._mow<G.t)){
-      e._mow=G.t+0.25;
+      e._mow=G.t+0.25; e._byMow=true;
       hitEnemy(e, 22, Math.atan2(e.y-P.y,e.x-P.x), 420, false);
     }
     if(!P.dead && e.contactCd<=0 && d < e.def.r+16 && e.fuse===undefined){
@@ -701,9 +719,9 @@ function updateYard(dt){
     const ed=Math.hypot(e.x-SPRINK.x,e.y-SPRINK.y);
     if(ed<180 && ed>20){
       const ea=Math.atan2(e.y-SPRINK.y,e.x-SPRINK.x);
-      if(Math.abs(angDiff(SPRINK.a,ea))<0.15 && (e._spk===undefined||e._spk<G.t)){
+      if(Math.abs(angDiff(SPRINK.a,ea))<(G.yard.sprink>=2?0.3:0.15) && (e._spk===undefined||e._spk<G.t)){
         e._spk=G.t+0.35;
-        hitEnemy(e, 2, ea, 170, false);
+        hitEnemy(e, G.yard.sprink>=1?6:2, ea, 170, false);
       }
     }
   }
@@ -712,8 +730,18 @@ function updateYard(dt){
   if(td<TRAMP.r && P.trampCd<=0 && !P.dead){
     P.trampCd=0.6; TRAMP.anim=1;
     const ba=td>1?Math.atan2(P.y-TRAMP.y,P.x-TRAMP.x):rand(0,TAU);
-    P.bvx+=Math.cos(ba)*760; P.bvy+=Math.sin(ba)*760;
-    P.iframe=Math.max(P.iframe,0.25);
+    const boost=G.yard.tramp>=1?950:760;
+    P.bvx+=Math.cos(ba)*boost; P.bvy+=Math.sin(ba)*boost;
+    P.iframe=Math.max(P.iframe, G.yard.tramp>=1?0.6:0.25);
+    if(G.yard.tramp>=2){
+      for(const e of G.enemies){
+        if(dist2(e.x,e.y,TRAMP.x,TRAMP.y)<200*200){
+          const ka=Math.atan2(e.y-TRAMP.y,e.x-TRAMP.x);
+          const kr=e.def.knockR!==undefined?e.def.knockR:1;
+          e.kx+=Math.cos(ka)*460*kr; e.ky+=Math.sin(ka)*460*kr;
+        }
+      }
+    }
     floatText(P.x,P.y-44,'BOING!','#6ea8ff',true);
     sfx.spring();
   }
@@ -759,9 +787,10 @@ function updatePickups(dt){
       p.x+=Math.cos(a)*sp*dt; p.y+=Math.sin(a)*sp*dt;
       if(d<24){
         G.pickups.splice(i,1);
-        if(p.kind==='bolt'){ G.mats++; G.totalMats++; sfx.pickup(); }
+        if(p.kind==='bolt'){ G.mats++; G.totalMats++; if(G.contract&&G.contract.def.key==='bolts') G.contract.prog++; sfx.pickup(); }
         else if(p.kind==='burger'){
-          const heal=Math.round(p.val*G.stats.burgerMul);
+          if(G.contract&&G.contract.def.key==='burger') G.contract.prog++;
+          const heal=Math.round((p.val+(G.yard.grill>=2?10:0))*G.stats.burgerMul);
           G.hp=Math.min(G.stats.maxHP, G.hp+heal);
           if(p.grill) G.burgerOut=false;
           floatText(P.x,P.y-44,'+'+heal+' 🍔','#9be06f',true);
@@ -840,7 +869,24 @@ function startBossPhase(kind){
   addWarn(bx,by,1.4,'bossw',kind);
   updateHUD();
 }
+function settleContract(){
+  const c=G.contract; if(!c) return;
+  G.contract=null;
+  const d=c.def;
+  const ok = d.key==='flam' ? FLAM.every(f=>f.up)
+           : d.key==='nodmg' ? !c.dmg
+           : c.prog>=d.n;
+  if(ok){
+    const pay=Math.round((10+3*G.wave)*DF().loot);
+    G.mats+=pay; G.totalMats+=pay; gainXP(8);
+    toast('🧹 CHORE DONE: +'+pay+' bolts, +8 XP'); sfx.buy();
+  } else {
+    toast('Chore missed. The lawn judges you.');
+  }
+  updateHUD();
+}
 function endWaveCleanup(){
+  settleContract();
   G.sub='vacuum'; G.subT=0;
   for(const e of [...G.enemies]){
     for(let k=0;k<6;k++) spawnPart(e.x,e.y,rand(0,TAU),rand(40,200),0.5,'#5c6470',3);
@@ -896,7 +942,35 @@ function rollOffers(){
   }
   G.shop.offers=offers;
 }
-function openShop(){ G.mode='shop'; G.shop.rerolls=0; rollOffers(); renderShop(); show('shop'); }
+function openShop(){
+  G.mode='shop'; G.shop.rerolls=0; G.shop.favorUsed=false;
+  document.getElementById('favorpick').classList.add('hidden');
+  rollOffers(); renderShop(); show('shop');
+}
+function sellWeapon(i){
+  if(G.weapons.length<=1) return;
+  const w=G.weapons[i]; if(!w) return;
+  const val=Math.max(1,Math.round(priceOf('w',w.key,w.tier)*0.5));
+  G.mats+=val; G.totalMats+=val;
+  G.weapons.splice(i,1);
+  toast('Sold '+WEAPONS[w.key].name+' for 🔩'+val);
+  sfx.buy(); renderShop(); renderSlots(); updateHUD();
+}
+function yardCost(key){
+  const lvl=G.yard[key], u=YARD_UPGRADES[key];
+  return lvl>=u.costs.length ? null : Math.max(1,Math.round(u.costs[lvl]*G.stats.priceMul));
+}
+function buyYard(key){
+  const cost=yardCost(key);
+  if(cost===null||G.mats<cost) return;
+  G.mats-=cost; G.yard[key]++;
+  const lvl=G.yard[key];
+  if(key==='grill'&&lvl===1) G.stats.grillMul*=0.65;
+  if(key==='mower'&&lvl===1) G.stats.ultNeed=Math.max(5,G.stats.ultNeed-5);
+  if(key==='mower'&&lvl===2) G.stats.mowDur+=2;
+  toast('🔧 '+YARD_UPGRADES[key].name+' installed');
+  sfx.buy(); renderShop(); updateHUD();
+}
 function rerollCost(){ return Math.max(1, Math.round((G.wave + G.shop.rerolls*2)*G.stats.rerollMul)); }
 function rerollShop(){
   const c=rerollCost();
@@ -976,9 +1050,27 @@ function renderShop(){
   rb.textContent='Reroll (🔩 '+rerollCost()+')';
   rb.disabled = G.mats<rerollCost();
   document.getElementById('statpanel').innerHTML=statsHTML();
-  const wp=G.weapons.map(w=>`<img src="${ICONURL[w.key]}" alt=""><sup>${w.tier}</sup>`).join(' ');
+  const wp=G.weapons.map((w,i)=>`<span class="wrow"><img src="${ICONURL[w.key]}" alt=""><sup>${w.tier}</sup>`+
+    (G.weapons.length>1?`<button class="sellbtn" data-i="${i}">SELL 🔩${Math.max(1,Math.round(priceOf('w',w.key,w.tier)*0.5))}</button>`:'')+
+    `</span>`).join(' ');
   document.getElementById('weappanel').innerHTML=`<h3>GARAGE (${G.weapons.length}/${MAX_SLOTS} slots)</h3>
-    ${wp}<br>Buy two of the same weapon + tier and they combine.`;
+    ${wp}<br>Buy two of the same weapon + tier and they combine. Selling pays half.`;
+  document.querySelectorAll('#weappanel .sellbtn').forEach(b=>
+    b.addEventListener('click',()=>sellWeapon(Number(b.dataset.i))));
+  document.getElementById('yardpanel').innerHTML=`<h3>YARD WORK (lasts the whole run)</h3>`+
+    Object.entries(YARD_UPGRADES).map(([k,u])=>{
+      const lvl=G.yard[k], cost=yardCost(k);
+      const btn = cost===null ? '<span style="color:#9be06f;font-weight:bold">MAXED</span>'
+        : `<button class="yardbtn" data-k="${k}" ${G.mats>=cost?'':'disabled'}>🔩 ${cost}</button>`;
+      return `<div class="yrow">${u.icon} <span class="sv">${u.name}</span> ${'▪'.repeat(lvl)}<br>`+
+        `<span class="ydesc">${cost===null?'Fully upgraded':u.descs[lvl]}</span> ${btn}</div>`;
+    }).join('');
+  document.querySelectorAll('#yardpanel .yardbtn').forEach(b=>
+    b.addEventListener('click',()=>buyYard(b.dataset.k)));
+  const fb=document.getElementById('favorbtn');
+  fb.disabled = !!(G.shop.favorUsed||G.favorNext);
+  fb.textContent = G.favorNext ? '📞 '+CHAMPS[G.favorNext].name+' is coming'
+    : G.shop.favorUsed ? '📞 Nobody else is home' : '📞 CALL A NEIGHBOR (free)';
 }
 document.getElementById('rerollbtn').addEventListener('click',rerollShop);
 document.getElementById('gowave').addEventListener('click',()=>{ sfx.click(); startWave(G.wave+1); });

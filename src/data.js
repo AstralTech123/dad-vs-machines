@@ -187,6 +187,45 @@ const DIFFS = {
 };
 const DF=()=>DIFFS[G.diff||2];
 
+/* ---------------- chore contracts (optional wave objectives) ---------------- */
+const CONTRACTS = [
+  { key:'mow',    n:6,  txt:'Scrap 6 machines with the mower' },
+  { key:'swarm',  n:8,  txt:'Scrap 8 Swarmlets' },
+  { key:'bolts',  n:25, txt:'Collect 25 bolts this wave' },
+  { key:'nodmg',  n:0,  txt:'Take zero damage this wave' },
+  { key:'flam',   n:0,  txt:'Keep every flamingo standing' },
+  { key:'burger', n:2,  txt:'Eat 2 burgers this wave' },
+];
+
+/* ---------------- neighbor favors (borrow a weak perk for one wave) ---------------- */
+const FAVORS = {
+  dad:   { desc:'+5% damage and attack speed this wave', deltas:{ dmg:0.05, atk:0.05 } },
+  karen: { desc:'Machines near you slowed 15% this wave', deltas:{ auraSlow:0.15 } },
+  coach: { desc:'+15% melee damage this wave', deltas:{ meleeMul:0.15 } },
+  itdad: { desc:'+50% crit damage this wave', deltas:{ critMul:0.5 } },
+  grill: { desc:'Burgers heal +50% this wave', deltas:{ burgerMul:0.5 } },
+  coupon:{ desc:'+15% luck this wave', deltas:{ luck:0.15 } },
+  yoga:  { desc:'Dash recharges 0.6s faster this wave', deltas:{ dashCdMax:-0.6 } },
+  ned:   { desc:'+12% weapon range this wave', deltas:{ rangeMul:0.12 } },
+  hank:  { desc:'Thorns 5 this wave', deltas:{ thorns:5 } },
+  brenda:{ desc:'+20% bigger explosions this wave', deltas:{ areaMul:0.2 } },
+  gus:   { desc:'+12% damage below half HP this wave', deltas:{ rage:0.12 } },
+};
+
+/* ---------------- yard investments (per-run upgrades to the map itself) ---------------- */
+const YARD_UPGRADES = {
+  grill: { name:'Grill Upgrade', icon:'🍔', costs:[20,40],
+    descs:['Grill cooks 35% faster','Burgers heal +10'] },
+  sprink:{ name:'Sprinkler Pressure', icon:'💦', costs:[18,36],
+    descs:['Sprinkler hits 3x harder','Sprinkler arc twice as wide'] },
+  tramp: { name:'Trampoline Grease', icon:'🤸', costs:[15,30],
+    descs:['Bigger launch and longer i-frames','Launching blasts machines away'] },
+  mower: { name:'Mower Tune-Up', icon:'🚜', costs:[25,50],
+    descs:['Mower ready 5 kills sooner','Mower runs 2 seconds longer'] },
+  pool:  { name:'Pool Chemicals', icon:'🏖️', costs:[12,24],
+    descs:['Machines slowed much harder in the pool','Machines rust: 4 damage per second in the pool'] },
+};
+
 /* ---------------- leveling ---------------- */
 function xpNeed(l){ return 10 + (l-1)*8; }
 const LEVEL_UPS = [
