@@ -78,6 +78,27 @@ function endTouch(e){ for(const t of e.changedTouches){ if(t.identifier===touch.
 cvEl.addEventListener('touchend', endTouch);
 cvEl.addEventListener('touchcancel', endTouch);
 
+/* ---------------- gamepad (Xbox Edge, Bluetooth and USB pads) ---------------- */
+const PAD={ active:false, x:0, y:0 };
+let padIndex=null, padPrev={};
+addEventListener('gamepadconnected', e=>{ padIndex=e.gamepad.index; toast('🎮 Controller connected'); });
+addEventListener('gamepaddisconnected', e=>{ if(padIndex===e.gamepad.index){ padIndex=null; PAD.active=false; } });
+function updatePad(){
+  if(padIndex===null) return;
+  const gp=navigator.getGamepads()[padIndex];
+  PAD.active=false;
+  if(!gp) return;
+  const x=gp.axes[0]||0, y=gp.axes[1]||0;
+  if(Math.hypot(x,y)>0.18){ PAD.active=true; PAD.x=x; PAD.y=y; }
+  const pressed=i=> !!(gp.buttons[i]&&gp.buttons[i].pressed);
+  const edge=i=> pressed(i)&&!padPrev[i];
+  if(edge(0)) tryDash();                    // A
+  if(edge(1)||edge(2)) tryMow();            // B or X
+  if(edge(9)) togglePause();                // Start / Menu
+  padPrev={};
+  for(let i=0;i<gp.buttons.length;i++) padPrev[i]=pressed(i);
+}
+
 function togglePause(){
   if(G.mode==='play'){
     G.mode='pause';
@@ -119,6 +140,7 @@ let last=performance.now();
 function loop(now){
   const dt=Math.min(0.05,(now-last)/1000); last=now;
   AT+=dt;
+  updatePad();
   updateFlies(dt);
   if(G.mode==='menu'){ updateDecor(dt); G.player.bob+=dt*3; SPRINK.a+=0.75*dt; }
   if(G.mode==='play'){

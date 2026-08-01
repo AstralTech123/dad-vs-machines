@@ -9,6 +9,7 @@ function tryDash(){
   if(keys['a']||keys['arrowleft']) ix-=1;
   if(keys['d']||keys['arrowright']) ix+=1;
   if(touch.active && (Math.abs(touch.dx)>7||Math.abs(touch.dy)>7)){ ix=touch.dx; iy=touch.dy; }
+  if(PAD.active){ ix=PAD.x; iy=PAD.y; }
   let len=Math.hypot(ix,iy);
   if(len<0.01){ ix=P.face; iy=0; len=1; }
   P.ddx=ix/len; P.ddy=iy/len;
@@ -181,6 +182,7 @@ function updatePlayer(dt){
   if(keys['a']||keys['arrowleft']) ix-=1;
   if(keys['d']||keys['arrowright']) ix+=1;
   if(touch.active && (Math.abs(touch.dx)>7||Math.abs(touch.dy)>7)){ ix=touch.dx/52; iy=touch.dy/52; }
+  if(PAD.active){ ix=PAD.x; iy=PAD.y; }
   const len=Math.hypot(ix,iy)||1;
   const mudF = inMud(P.x,P.y)?0.55:1;
   const mowF = P.mowT>0?1.55:1;

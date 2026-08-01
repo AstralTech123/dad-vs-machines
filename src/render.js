@@ -152,6 +152,7 @@ function buildGuide(){
     <p><span class="sv">WASD</span> or arrows to move · <span class="sv">SPACE</span> dash with i-frames ·
     <span class="sv">E</span> rides the mower once 25 kills charge it · <span class="sv">P</span> pause.<br>
     Touch: drag anywhere to move, two finger tap to dash, tap the mower bar to ride.<br>
+    Controller: left stick moves, <span class="sv">A</span> dashes, <span class="sv">B</span> or <span class="sv">X</span> rides the mower, <span class="sv">Start</span> pauses. Menus use the pointer.<br>
     Weapons aim and fire themselves. Your job is positioning.</p>
     <h3>STATS</h3>
     <table>${statRows}</table>
