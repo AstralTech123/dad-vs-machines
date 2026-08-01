@@ -128,6 +128,11 @@ function spawnEnemy(defKey,x,y,child){
     e.hp=e.maxhp=Math.round(d.hp*DF().hp*endlessMul);
     G.boss=e;
   }
+  // traits: from wave 6, machines can spawn with an affix (more loot and XP)
+  if(!d.boss && !child && G.wave>=6 && Math.random() < Math.min(0.3, 0.045*(G.wave-5))*DF().rate){
+    e.trait=pick(Object.keys(TRAITS));
+    TRAITS[e.trait].apply(e);
+  }
   if(defKey==='boss'){ e.burstT=2.0; e.addT=5; e.spiral=0; e.volT=2.0; }
   if(defKey==='subs'){ e.billT=3.5; e.burstT=6; e.spiral=0; }
   if(defKey==='cloud'){ e.spiral=rand(0,TAU); e.fireT=0.4; e.addT=6; e.orbDir=Math.random()<0.5?1:-1; }
@@ -398,6 +403,7 @@ function explode(b){
 function hitEnemy(e, dmg, ang, knock, crit){
   let mult = G.stats.dmg*(crit?G.stats.critMul:1);
   if(G.stats.rage && G.hp<=G.stats.maxHP*0.5) mult*=1+G.stats.rage;
+  if(e.dr) mult*=(1-e.dr);
   let blocked=false;
   if(e.def.frontDR){
     const fe=Math.atan2(G.player.y-e.y, G.player.x-e.x);
@@ -428,7 +434,15 @@ function killEnemy(e){
   const idx=G.enemies.indexOf(e); if(idx<0) return;
   G.enemies.splice(idx,1);
   G.kills++;
-  gainXP(e.key==='boss'||e.key==='algo' ? 30 : e.def.elite ? 12 : e.def.mats);
+  gainXP(Math.round((e.def.boss ? 30 : e.def.elite ? 12 : e.def.mats)*(e.trait?1.5:1)));
+  if(e.volatile){
+    spawnPart(e.x,e.y,0,0,0.2,'flash',60);
+    ringPart(e.x,e.y,70);
+    for(let k=0;k<8;k++) spawnPart(e.x,e.y,rand(0,TAU),rand(60,240),0.4,'#ff9a4d',3);
+    sfx.boom();
+    if(!G.player.dead && dist2(e.x,e.y,G.player.x,G.player.y)<84*84)
+      damagePlayer(6*dmgMul(G.wave));
+  }
   const P=G.player;
   if(P.ult<G.stats.ultNeed){
     P.ult++;
@@ -456,7 +470,7 @@ function killEnemy(e){
     banner('ELITE SCRAPPED','+'+loot+' BOLTS AND A BURGER');
     G.cam.shake=18;
   } else {
-    const mats = e.child?0:Math.round(e.def.mats*DF().loot);
+    const mats = e.child?0:Math.round(e.def.mats*DF().loot*(e.trait?1.5:1));
     for(let m=0;m<mats;m++) G.pickups.push({ x:e.x+rand(-10,10), y:e.y+rand(-10,10),
       vx:rand(-70,70), vy:rand(-90,-20), mag:false, t:0, kind:'bolt', val:1 });
   }
@@ -622,9 +636,13 @@ function updateEnemies(dt){
       hitEnemy(e, 22, Math.atan2(e.y-P.y,e.x-P.x), 420, false);
     }
     if(!P.dead && e.contactCd<=0 && d < e.def.r+16 && e.fuse===undefined){
-      if(damagePlayer(e.def.dmg*dmgMul(G.wave))){
+      if(damagePlayer(e.def.dmg*dmgMul(G.wave)*(e.dmg2||1))){
         e.contactCd=0.8;
         e.kx-=Math.cos(a)*140; e.ky-=Math.sin(a)*140;
+        if(e.leech && e.hp<e.maxhp){
+          e.hp=Math.min(e.maxhp, e.hp+8);
+          floatText(e.x,e.y-e.def.r-10,'+8','#9be06f');
+        }
       }
     }
   }
@@ -1077,7 +1095,13 @@ function rollOffers(){
         const st=ITEMS[k].stats||{};
         return [k, (pref && st[pref+'Mul'])?3:1];
       }));
-      offers.push({ kind:'i', key, tier:ITEMS[key].rar, price:priceOf('i',key,1), sold:false });
+      // occasionally the item is CURSED: 40% off, but it costs you something
+      let curse=null, price=priceOf('i',key,1);
+      if(ITEMS[key].rar<5 && Math.random()<0.12){
+        curse=pick([['maxHP',-6],['move',-12],['armor',-1],['dodge',-0.03],['luck',-0.08]]);
+        price=Math.max(1,Math.round(price*0.6));
+      }
+      offers.push({ kind:'i', key, tier:ITEMS[key].rar, price, curse, sold:false });
     }
   }
   G.shop.offers=offers;
@@ -1137,6 +1161,11 @@ function buyOffer(i){
   } else {
     const it=ITEMS[o.key];
     applyItem(it);
+    if(o.curse){
+      G.stats[o.curse[0]]+=o.curse[1];
+      G.hp=Math.max(1,Math.min(G.hp,G.stats.maxHP));
+      floatText(G.player.x,G.player.y-50,'CURSED...','#ff5a5f',true);
+    }
     G.itemCounts[o.key]=(G.itemCounts[o.key]||0)+1;
     if(it.rar===5) sfx.legendary();
   }
@@ -1200,10 +1229,15 @@ function renderShop(){
         desc+='<br><span style="color:#e0a34d">Slots full. Needs a matching pair to combine.</span>';
       tierHTML=`<div class="ctier">${t.name} WEAPON</div>`; cls='t'+o.tier;
     } else { const d=ITEMS[o.key], r=RARITY[o.tier];
-      iconHTML=d.icon; name=d.name;
+      iconHTML=d.icon; name=(o.curse?'Cursed ':'')+d.name;
       const stats=fmtItemStats(d);
       desc=(stats?`<span style="color:#ece7db">${stats}</span><br>`:'')+(d.note||'');
-      tierHTML=`<div class="ctier" style="color:${r.color}">${r.name}</div>`; cls='r'+o.tier;
+      if(o.curse){
+        const cf=STAT_FMT[o.curse[0]];
+        desc+=`<br><span style="color:#ff5a5f">CURSE: ${cf?cf(o.curse[1]):o.curse[0]+' '+o.curse[1]}</span>`;
+      }
+      tierHTML=`<div class="ctier" style="color:${o.curse?'#ff5a5f':r.color}">${o.curse?'CURSED '+r.name:r.name}</div>`;
+      cls=(o.curse?'cursed ':'')+'r'+o.tier;
     }
     const div=document.createElement('div');
     div.className='card '+cls+(o.sold?' sold':'');

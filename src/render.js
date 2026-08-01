@@ -176,7 +176,8 @@ function buildGuide(){
     <span style="color:#9be06f">UNCOMMON</span>, <span style="color:#6aa8f0">RARE</span>,
     <span style="color:#c48df0">EPIC</span>, <span style="color:#ffd166">LEGENDARY</span>.
     Higher rarities pack more stats or unique abilities. Legendaries appear from wave 5,
-    once per run. Luck improves your odds at everything.</p>
+    once per run. Luck improves your odds at everything. Watch for <span style="color:#ff5a5f">CURSED</span>
+    items: 40% off, but the discount costs you something real.</p>
     <h3>WEAPONS</h3>
     <p>Six slots. Buy two of the same weapon at the same tier and they combine into the next tier.</p>
     <table>${weapRows}</table>
@@ -187,7 +188,9 @@ function buildGuide(){
     <h3>THE MACHINES</h3>
     <p>Eleven types, from swarming Chatbots to shielded Firewall bots and healing IT Support.
     Golden elites roam with big loot, follow the edge arrows to find them. Airdrop crates land
-    on a flare. Bosses arrive when the clock hits zero on waves 5 and 10.</p>
+    on a flare. From wave 6, machines can spawn with traits: TURBO, ARMORED, VOLATILE, GIANT,
+    LEECH. They glow, they are labeled, and they pay 50% extra loot and XP. Bosses arrive when
+    the clock hits zero on waves 5, 10, 15, and 20, and beat wave 20 to unlock the endless shift.</p>
     <h3>THE NEIGHBORS</h3>
     <table>${champRows}</table>`;
 }
@@ -900,6 +903,14 @@ function drawEnemy(e){
   const bob=Math.sin(e.wobble*6+e.seed)*2;
   ctx.fillStyle='rgba(0,0,0,0.3)';
   ctx.beginPath(); ctx.ellipse(0,r*0.9+4,r*0.9,r*0.28,0,0,TAU); ctx.fill();
+  if(e.trait){
+    const T=TRAITS[e.trait];
+    drawGlow(T.glow,0,0,r*1.6,0.45);
+    ctx.fillStyle=T.color; ctx.font='bold 9px monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(T.name,0,-r-16);
+  }
+  if(e.giant) ctx.scale(1.22,1.22);
   if(e.key==='chat'){
     ctx.translate(0,bob);
     drawGlow('red',0,-r-8,9,0.5);

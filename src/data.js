@@ -307,6 +307,15 @@ function yardName(k){ const u=YARD_UPGRADES[k]; return (MAPKEY==='office'&&u.ona
 function champCanUse(cls){ const c=CHAMPS[(G&&G.champ)||'dad']||CHAMPS.dad; return !c.wonly||c.wonly.includes(cls); }
 function yardDescs(k){ const u=YARD_UPGRADES[k]; return (MAPKEY==='office'&&u.odescs)?u.odescs:u.descs; }
 
+/* ---------------- enemy traits (affixes from wave 6 on) ---------------- */
+const TRAITS={
+  turbo:   { name:'TURBO',    color:'#8fd8ff', glow:'blue',   apply:e=>{ e.spd*=1.45; } },
+  armored: { name:'ARMORED',  color:'#c9cdd4', glow:'white',  apply:e=>{ e.dr=0.3; } },
+  volatile:{ name:'VOLATILE', color:'#ff9a4d', glow:'orange', apply:e=>{ e.volatile=true; } },
+  giant:   { name:'GIANT',    color:'#c48df0', glow:'purple', apply:e=>{ e.hp*=1.6; e.maxhp*=1.6; e.giant=true; e.spd*=0.85; e.dmg2=1.3; } },
+  leech:   { name:'LEECH',    color:'#9be06f', glow:'green',  apply:e=>{ e.leech=true; } },
+};
+
 /* ---------------- leveling ---------------- */
 function xpNeed(l){ return 10 + (l-1)*8; }
 const LEVEL_UPS = [
