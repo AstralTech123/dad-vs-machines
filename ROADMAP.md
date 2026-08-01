@@ -57,3 +57,11 @@ plus a daily seeded run everyone can compare scores on.
 ## Reference games
 Brotato (shop, luck, builds), LoL Swarm mode (champ roles and ults), Bloons
 (map variety, tiered content depth).
+
+## Shipped since (2026-08-01 session 2)
+- 5 difficulty tiers: Lazy Sunday, Weekday, Weekend Warrior, HOA Audit, Robot Uprising
+- Stat system v2 (weapon classes, dodge, luck, lifesteal), XP and leveling with pick-one-of-four upgrades
+- Champion select with 11 neighbors, real portraits, per-champ outfits and perks
+- Pause menu, in-game How to Play guide, crowd damage fix
+- Garage sale, chore contracts, neighbor favors, yard investments
+- NEXT: 55+ item catalog with rarities and ability items, then difficulty tuning pass
