@@ -76,7 +76,11 @@ cvEl.addEventListener('touchend', endTouch);
 cvEl.addEventListener('touchcancel', endTouch);
 
 function togglePause(){
-  if(G.mode==='play'){ G.mode='pause'; show('pause'); }
+  if(G.mode==='play'){
+    G.mode='pause';
+    document.getElementById('pausestats').innerHTML=statsHTML();
+    show('pause');
+  }
   else if(G.mode==='pause'){ G.mode='play'; hide('pause'); }
 }
 document.getElementById('pausebtn').addEventListener('click',()=>{ sfx.click(); togglePause(); });

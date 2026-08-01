@@ -208,11 +208,13 @@ function updatePlayer(dt){
   P.regenT+=dt;
   if(P.regenT>=4){ P.regenT-=4; if(st.regen>0 && G.hp<st.maxHP){ G.hp=Math.min(st.maxHP,G.hp+st.regen); floatText(P.x,P.y-40,'+'+st.regen,'#9be06f'); updateHUD(); } }
 }
+/* returns true when the attack connected (including a dodge, which still
+   consumes the attacker's swing) so callers can pace their cooldowns */
 function damagePlayer(raw){
   const P=G.player;
-  if(P.dead||P.iframe>0||P.mowT>0) return;
+  if(P.dead||P.iframe>0||P.mowT>0) return false;
   if(G.stats.dodge>0 && Math.random()<G.stats.dodge){
-    floatText(P.x,P.y-46,'DODGE','#8fd0ea'); return;
+    floatText(P.x,P.y-46,'DODGE','#8fd0ea'); return true;
   }
   const dmg=Math.max(1, Math.round(raw - G.stats.armor));
   // brief 0.1s buffer only smooths same-frame spikes; each machine's own
@@ -227,6 +229,7 @@ function damagePlayer(raw){
   }
   if(G.hp<=0){ G.hp=0; P.dead=true; P.deadT=0; playerDeathFX(); }
   updateHUD();
+  return true;
 }
 function playerDeathFX(){
   const P=G.player; sfx.boom(); G.cam.shake=26;
@@ -562,9 +565,10 @@ function updateEnemies(dt){
       hitEnemy(e, 22, Math.atan2(e.y-P.y,e.x-P.x), 420, false);
     }
     if(!P.dead && e.contactCd<=0 && d < e.def.r+16 && e.fuse===undefined){
-      damagePlayer(e.def.dmg*dmgMul(G.wave));
-      e.contactCd=0.8;
-      e.kx-=Math.cos(a)*140; e.ky-=Math.sin(a)*140;
+      if(damagePlayer(e.def.dmg*dmgMul(G.wave))){
+        e.contactCd=0.8;
+        e.kx-=Math.cos(a)*140; e.ky-=Math.sin(a)*140;
+      }
     }
   }
   for(let i=G.ebullets.length-1;i>=0;i--){
@@ -969,15 +973,7 @@ function renderShop(){
   const rb=document.getElementById('rerollbtn');
   rb.textContent='Reroll (🔩 '+rerollCost()+')';
   rb.disabled = G.mats<rerollCost();
-  const st=G.stats;
-  document.getElementById('statpanel').innerHTML=`<h3>${(CHAMPS[G.champ]||CHAMPS.dad).name.toUpperCase()} STATS</h3>
-    Max HP <span class="sv">${st.maxHP}</span> · Regen <span class="sv">${st.regen}/4s</span> ·
-    Damage <span class="sv">${Math.round(st.dmg*100)}%</span> · Atk Speed <span class="sv">${Math.round(st.atk*100)}%</span><br>
-    Move <span class="sv">${Math.round(st.move)}</span> · Armor <span class="sv">${st.armor}</span> ·
-    Crit <span class="sv">${Math.round(st.crit*100)}%</span> · Pickup <span class="sv">${Math.round(st.pickup)}</span><br>
-    Melee <span class="sv">${Math.round(st.meleeMul*100)}%</span> · Ranged <span class="sv">${Math.round(st.rangedMul*100)}%</span> ·
-    Blast <span class="sv">${Math.round(st.blastMul*100)}%</span> · Dodge <span class="sv">${Math.round(st.dodge*100)}%</span> ·
-    Luck <span class="sv">${Math.round(st.luck*100)}%</span> · Lifesteal <span class="sv">${Math.round(st.lifesteal*100)}%</span>`;
+  document.getElementById('statpanel').innerHTML=statsHTML();
   const wp=G.weapons.map(w=>`<img src="${ICONURL[w.key]}" alt=""><sup>${w.tier}</sup>`).join(' ');
   document.getElementById('weappanel').innerHTML=`<h3>GARAGE (${G.weapons.length}/${MAX_SLOTS} slots)</h3>
     ${wp}<br>Buy two of the same weapon + tier and they combine.`;

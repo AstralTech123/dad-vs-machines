@@ -77,6 +77,74 @@ function showWin(){
     `AGI-PRIME unplugged on <b>wave ${FINAL_WAVE}</b> · <b>${G.kills}</b> machines scrapped · <b>${G.totalMats}</b> bolts collected<br>He clocked out at 5:00 PM sharp and did not think about it again.`;
   show('win');
 }
+/* ---------------- shared stat sheet + guide ---------------- */
+function statsHTML(){
+  const st=G.stats;
+  return `<h3>${(CHAMPS[G.champ]||CHAMPS.dad).name.toUpperCase()} · LEVEL ${G.level||1}</h3>
+    Max HP <span class="sv">${st.maxHP}</span> · Regen <span class="sv">${st.regen}/4s</span> ·
+    Damage <span class="sv">${Math.round(st.dmg*100)}%</span> · Atk Speed <span class="sv">${Math.round(st.atk*100)}%</span><br>
+    Move <span class="sv">${Math.round(st.move)}</span> · Armor <span class="sv">${st.armor}</span> ·
+    Crit <span class="sv">${Math.round(st.crit*100)}%</span> · Pickup <span class="sv">${Math.round(st.pickup)}</span><br>
+    Melee <span class="sv">${Math.round(st.meleeMul*100)}%</span> · Ranged <span class="sv">${Math.round(st.rangedMul*100)}%</span> ·
+    Blast <span class="sv">${Math.round(st.blastMul*100)}%</span> · Dodge <span class="sv">${Math.round(st.dodge*100)}%</span> ·
+    Luck <span class="sv">${Math.round(st.luck*100)}%</span> · Lifesteal <span class="sv">${Math.round(st.lifesteal*100)}%</span>`;
+}
+function buildGuide(){
+  const statRows=[
+    ['Max HP','Your health. Reach 0 and the run ends.'],
+    ['Regen','HP recovered every 4 seconds.'],
+    ['Damage','Multiplies all damage you deal.'],
+    ['Attack Speed','How fast every weapon fires.'],
+    ['Move Speed','How fast you walk.'],
+    ['Armor','Flat damage removed from every hit you take.'],
+    ['Dodge','Chance to completely avoid a hit.'],
+    ['Crit','Chance to deal double damage (triple for KevBoi).'],
+    ['Melee / Ranged / Blast','Bonus damage for that weapon class.'],
+    ['Range','How far your weapons reach.'],
+    ['Luck','Better shop tiers, fatter crates and elite loot.'],
+    ['Lifesteal','A cut of damage dealt comes back as HP.'],
+    ['Pickup Range','How far bolts fly toward you.'],
+  ].map(r=>`<tr><td class="sv">${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+  const weapRows=Object.entries(WEAPONS).map(([k,w])=>
+    `<tr><td><img src="${ICONURL[k]}" alt=""></td><td class="sv">${w.name}</td>`+
+    `<td class="g${w.cls}">${w.cls.toUpperCase()}</td><td>${w.dmg} dmg / ${w.cd}s</td><td>${w.desc}</td></tr>`).join('');
+  const champRows=Object.entries(CHAMPS).map(([k,c])=>
+    `<tr><td><img src="${champPortrait(k)}" alt=""></td><td class="sv">${c.name}</td>`+
+    `<td>${c.role}</td><td>${c.perkDesc}</td></tr>`).join('');
+  document.getElementById('guidebody').innerHTML=`
+    <h3>CONTROLS</h3>
+    <p><span class="sv">WASD</span> or arrows to move · <span class="sv">SPACE</span> dash with i-frames ·
+    <span class="sv">E</span> rides the mower once 25 kills charge it · <span class="sv">P</span> pause.<br>
+    Touch: drag anywhere to move, two finger tap to dash, tap the mower bar to ride.<br>
+    Weapons aim and fire themselves. Your job is positioning.</p>
+    <h3>STATS</h3>
+    <table>${statRows}</table>
+    <h3>LEVELING</h3>
+    <p>Machines grant XP, elites and bosses grant piles of it. Every level banks a free upgrade,
+    chosen one of four at wave end before the shop opens.</p>
+    <h3>WEAPONS</h3>
+    <p>Six slots. Buy two of the same weapon at the same tier and they combine into the next tier.</p>
+    <table>${weapRows}</table>
+    <h3>THE YARD</h3>
+    <p>The grill cooks healing burgers · the trampoline launches you across the map ·
+    the kiddie pool slows everyone in it · the sprinkler damages machines · mud slows you ·
+    flamingos tip over. The yard is on your side, use it.</p>
+    <h3>THE MACHINES</h3>
+    <p>Eleven types, from swarming Chatbots to shielded Firewall bots and healing IT Support.
+    Golden elites roam with big loot, follow the edge arrows to find them. Airdrop crates land
+    on a flare. Bosses arrive when the clock hits zero on waves 5 and 10.</p>
+    <h3>THE NEIGHBORS</h3>
+    <table>${champRows}</table>`;
+}
+document.getElementById('resumebtn').addEventListener('click',()=>{ sfx.click(); togglePause(); });
+document.getElementById('restartbtn').addEventListener('click',()=>{ sfx.click(); hide('pause'); newGame(); applyChamp(selChamp); startWave(1); });
+document.getElementById('quitbtn').addEventListener('click',()=>{ sfx.click(); hide('pause'); newGame(); show('menu'); });
+document.getElementById('pguidebtn').addEventListener('click',()=>{ sfx.click(); buildGuide(); show('guide'); });
+document.getElementById('mguidebtn').addEventListener('click',()=>{ initAudio(); sfx.click(); buildGuide(); show('guide'); });
+document.getElementById('guideclose').addEventListener('click',()=>{ sfx.click(); hide('guide'); });
+document.getElementById('deadmenubtn').addEventListener('click',()=>{ sfx.click(); hide('dead'); newGame(); show('menu'); });
+document.getElementById('winmenubtn').addEventListener('click',()=>{ sfx.click(); hide('win'); newGame(); show('menu'); });
+
 /* ---------------- champion select ---------------- */
 let selChamp='dad';
 const CHAMP_IMGS={};

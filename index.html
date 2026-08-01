@@ -90,6 +90,21 @@
 
   #champsel { background:rgba(8,10,8,.72); backdrop-filter:blur(3px); text-align:center; z-index:8; padding:12px; overflow:auto; }
   #levelup { background:rgba(8,10,8,.78); backdrop-filter:blur(3px); text-align:center; z-index:11; padding:12px; }
+  .menubtns { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:18px; pointer-events:auto; }
+  .bigbtn.slim { margin-top:0; font-size:14px; padding:10px 20px; letter-spacing:1px; }
+  .bigbtn.alt { background:linear-gradient(180deg,#3a4136,#2b3129); color:#ece7db;
+                border-bottom-color:#1c211b; box-shadow:none; }
+  #pausestats { margin-top:14px; width:min(560px,92vw); flex:none; pointer-events:auto; text-align:left; }
+  #guide { background:rgba(8,10,8,.93); z-index:13; padding:14px; overflow:auto; justify-content:flex-start; }
+  #guideinner { width:min(760px,96vw); margin-top:2vh; pointer-events:auto; text-align:left; padding-bottom:40px; }
+  #guidehead { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  #guidebody h3 { font-size:12px; letter-spacing:2px; color:#ffd166; margin:18px 0 6px; }
+  #guidebody p { font-size:13px; color:#c9c2b4; line-height:1.7; }
+  #guidebody table { width:100%; border-collapse:collapse; font-size:12.5px; color:#aca595; }
+  #guidebody td { padding:4px 8px 4px 0; border-bottom:1px solid #232821; vertical-align:middle; line-height:1.5; }
+  #guidebody img { width:26px; height:26px; image-rendering:pixelated; vertical-align:middle; }
+  #guidebody .sv { color:#ece7db; font-weight:bold; white-space:nowrap; }
+  .gmelee { color:#ff9a66; } .granged { color:#9be06f; } .gblast { color:#c48df0; }
   #lvlchoices { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px;
                 width:min(700px,94vw); margin:18px auto 0; pointer-events:auto; }
   .lvlcard { background:#191d17; border:2px solid #4a5044; border-radius:12px; padding:16px 10px;
@@ -212,7 +227,8 @@
     Weapons fire themselves. Hunt the elite machines, grab the airdrops,<br>
     and the grill makes burgers when you need a snack. Bosses show up when the clock runs out.
   </div>
-  <button class="bigbtn" id="startbtn">CLOCK IN</button>
+  <button class="bigbtn" id="startbtn">CLOCK IN</button><br>
+  <button class="bigbtn slim alt" id="mguidebtn" style="margin-top:12px;">HOW TO PLAY</button>
   <div id="touchnote">Touch: drag to move, two-finger tap to dash, tap the mower bar to ride.</div>
   <div class="credit">Handcrafted artisanal code. No machines were consulted.</div>
 </div>
@@ -234,19 +250,38 @@
 <div id="dead" class="overlay hidden">
   <div id="deadtitle">TERMINATED</div>
   <div class="endstats" id="deadstats"></div>
-  <button class="bigbtn" id="retrybtn">CLOCK BACK IN</button>
+  <button class="bigbtn" id="retrybtn">CLOCK BACK IN</button><br>
+  <button class="bigbtn slim alt" id="deadmenubtn" style="margin-top:12px;">MAIN MENU</button>
 </div>
 
 <div id="win" class="overlay hidden">
   <div id="wintitle">SINGULARITY CANCELLED</div>
   <div class="endstats" id="winstats"></div>
-  <button class="bigbtn" id="winbtn">RUN IT BACK</button>
+  <button class="bigbtn" id="winbtn">RUN IT BACK</button><br>
+  <button class="bigbtn slim alt" id="winmenubtn" style="margin-top:12px;">MAIN MENU</button>
 </div>
 
 <div id="pause" class="overlay hidden">
   <h1 class="title" style="font-size:40px;">PAUSED</h1>
   <div class="tagline">Probably checking the thermostat.</div>
+  <div class="panel" id="pausestats"></div>
+  <div class="menubtns">
+    <button class="bigbtn slim" id="resumebtn">RESUME</button>
+    <button class="bigbtn slim alt" id="pguidebtn">HOW TO PLAY</button>
+    <button class="bigbtn slim alt" id="restartbtn">RESTART RUN</button>
+    <button class="bigbtn slim alt" id="quitbtn">MAIN MENU</button>
+  </div>
   <div class="controls">Press <span class="kbd">P</span> or tap ⏸ to resume</div>
+</div>
+
+<div id="guide" class="overlay hidden">
+  <div id="guideinner">
+    <div id="guidehead">
+      <h2 class="cstitle" style="font-size:24px;">HOW TO PLAY</h2>
+      <button class="bigbtn slim" id="guideclose">CLOSE</button>
+    </div>
+    <div id="guidebody"></div>
+  </div>
 </div>
 
 <div id="shop" class="overlay hidden">
