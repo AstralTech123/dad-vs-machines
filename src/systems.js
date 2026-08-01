@@ -48,6 +48,18 @@ function startWave(n){
   banner('WAVE '+n, flavor(n)); sfx.wave();
   updateHUD();
 }
+
+/* apply a champion's stat mods and starting weapon; call right after newGame() */
+function applyChamp(key){
+  const c=CHAMPS[key]||CHAMPS.dad;
+  G.champ=key; G.perk=c.perk||null;
+  const st=G.stats, m=c.mods||{};
+  st.maxHP+=(m.maxHP||0); st.move+=(m.move||0); st.dmg+=(m.dmg||0); st.atk+=(m.atk||0);
+  st.crit+=(m.crit||0); st.armor+=(m.armor||0); st.pickup+=(m.pickup||0); st.regen+=(m.regen||0);
+  G.hp=st.maxHP;
+  G.weapons=[ mkWeapon(c.weapon||'stapler',1) ];
+  updateHUD(); renderSlots();
+}
 function flavor(n){
   return ['','They said it was just autocomplete.','The pop-ups are walking now.',
     'Same-day delivery. Of explosions.','It is aiming at you specifically.','Survive the clock. Then meet The Algorithm.',

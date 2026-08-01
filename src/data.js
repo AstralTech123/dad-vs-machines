@@ -126,3 +126,53 @@ function resolveObst(px,py,pr){
 }
 function inMud(x,y){ return dist2(x,y,MUD.x,MUD.y) < MUD.r*MUD.r; }
 
+/* ---------------- champions ----------------
+   mods are flat deltas on the base stats in newGame():
+   maxHP 50, regen 0, dmg 1, atk 1, move 240, armor 0, pickup 80, crit 0.03 */
+const CHAMPS = {
+  dad:    { name:'The Dad', icon:'👟', role:'ALL-ROUNDER', weapon:'stapler',
+            blurb:'The original. Maximum cushion, zero weaknesses.',
+            mods:{}, perk:null,
+            perkDesc:'Perfectly average in every way. The HOA approves.' },
+  karen:  { name:'Karen', icon:'📋', role:'CASTER', weapon:'tps',
+            blurb:'HOA President. She has already spoken to your manager.',
+            mods:{ maxHP:-5, move:12 }, perk:'complaint',
+            perkDesc:'HOA Complaint: machines near her are slowed 28%.' },
+  coach:  { name:'Coach Dad', icon:'🏈', role:'MELEE', weapon:'whacker',
+            blurb:'Still wears the whistle. Still doing laps.',
+            mods:{ move:26, maxHP:5 }, perk:'whistle',
+            perkDesc:'Airhorn Dash: dashing blasts machines back. Melee damage +30%.' },
+  itdad:  { name:'IT Dad', icon:'🖥️', role:'RANGED', weapon:'stapler',
+            blurb:'Have you tried turning the robots off and on again?',
+            mods:{ maxHP:-10, crit:0.09 }, perk:'overclock',
+            perkDesc:'Overclock: critical hits deal triple damage instead of double.' },
+  grill:  { name:'Grill Dad', icon:'🍔', role:'TANK', weapon:'mug',
+            blurb:'The propane is a lifestyle.',
+            mods:{ maxHP:15, move:-18 }, perk:'grillmaster',
+            perkDesc:'Grillmaster: burgers heal double and the grill cooks much faster.' },
+  coupon: { name:'Coupon Mom', icon:'🛒', role:'SUPPORT', weapon:'darts',
+            blurb:'Never paid full price. Never will.',
+            mods:{ pickup:40 }, perk:'coupons',
+            perkDesc:'Coupon Book: shop prices 20% off and rerolls half price.' },
+  yoga:   { name:'Yoga Mom', icon:'🧘', role:'MELEE', weapon:'blower',
+            blurb:'Inhale serenity. Exhale leaf blower.',
+            mods:{ move:16, maxHP:-5 }, perk:'flow',
+            perkDesc:'Flow State: dash recharges twice as fast with longer i-frames.' },
+  ned:    { name:'Watchman Ned', icon:'🔦', role:'RANGED', weapon:'darts',
+            blurb:'Neighborhood Watch. He saw you. He sees everything.',
+            mods:{ dmg:0.08 }, perk:'binoculars',
+            perkDesc:'Binoculars: +25% weapon range.' },
+  hank:   { name:'Handyman Hank', icon:'🔧', role:'TANK', weapon:'whacker',
+            blurb:'Fixes fences. Settles scores.',
+            mods:{ maxHP:10, armor:2, move:-10 }, perk:'thorns',
+            perkDesc:'Thorns: machines that hit him take damage right back.' },
+  brenda: { name:'Book Club Brenda', icon:'📚', role:'CASTER', weapon:'mug',
+            blurb:'This month\'s pick: The Art of War.',
+            mods:{ dmg:0.05 }, perk:'bookclub',
+            perkDesc:'Plot Twist: explosions are 45% bigger.' },
+  gus:    { name:'Retired Marine Gus', icon:'🎖️', role:'TANK', weapon:'driver',
+            blurb:'Reactivated for one last yard.',
+            mods:{ maxHP:30, move:-36, armor:1 }, perk:'oorah',
+            perkDesc:'Oorah: below half HP he deals +25% damage.' },
+};
+

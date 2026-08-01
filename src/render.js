@@ -58,9 +58,42 @@ function showWin(){
     `AGI-PRIME unplugged on <b>wave ${FINAL_WAVE}</b> · <b>${G.kills}</b> machines scrapped · <b>${G.totalMats}</b> bolts collected<br>He clocked out at 5:00 PM sharp and did not think about it again.`;
   show('win');
 }
-document.getElementById('startbtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('menu'); startWave(1); });
-document.getElementById('retrybtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('dead'); newGame(); startWave(1); });
-document.getElementById('winbtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('win'); newGame(); startWave(1); });
+/* ---------------- champion select ---------------- */
+let selChamp='dad';
+function buildChampSelect(){
+  const grid=document.getElementById('champgrid');
+  grid.innerHTML='';
+  for(const key in CHAMPS){
+    const c=CHAMPS[key];
+    const el=document.createElement('div');
+    el.className='champcard'+(key===selChamp?' sel':'');
+    el.innerHTML=`<div class="cpicon">${c.icon}</div><div class="cpname">${c.name}</div>`+
+      `<div class="cprole ${c.role.toLowerCase().replace(/[^a-z]/g,'')}">${c.role}</div>`;
+    el.addEventListener('click',()=>{ if(selChamp!==key){ selChamp=key; sfx.click(); buildChampSelect(); } });
+    grid.appendChild(el);
+  }
+  renderChampDetail();
+}
+function renderChampDetail(){
+  const c=CHAMPS[selChamp], m=c.mods||{};
+  const parts=[];
+  const fmt=(v,suf)=>(v>0?'+':'')+v+(suf||'');
+  if(m.maxHP) parts.push('Max HP '+fmt(m.maxHP));
+  if(m.move) parts.push('Speed '+fmt(m.move));
+  if(m.dmg) parts.push('Damage '+fmt(Math.round(m.dmg*100),'%'));
+  if(m.atk) parts.push('Attack Speed '+fmt(Math.round(m.atk*100),'%'));
+  if(m.crit) parts.push('Crit '+fmt(Math.round(m.crit*100),'%'));
+  if(m.armor) parts.push('Armor '+fmt(m.armor));
+  if(m.pickup) parts.push('Pickup '+fmt(m.pickup));
+  document.getElementById('champdetail').innerHTML=
+    `<div class="cblurb">${c.blurb}</div>`+
+    `<div class="cstats">${parts.length?parts.join(' · '):'Standard issue neighbor stats'}</div>`+
+    `<div class="cweap">Starts with: ${WEAPONS[c.weapon].name}</div>`;
+}
+document.getElementById('startbtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('menu'); buildChampSelect(); show('champsel'); });
+document.getElementById('champstart').addEventListener('click',()=>{ sfx.click(); hide('champsel'); newGame(); applyChamp(selChamp); startWave(1); });
+document.getElementById('retrybtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('dead'); newGame(); applyChamp(selChamp); startWave(1); });
+document.getElementById('winbtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('win'); newGame(); applyChamp(selChamp); startWave(1); });
 
 /* ---------------- canvas + glow sprites ---------------- */
 const cv=document.getElementById('game'), ctx=cv.getContext('2d');
