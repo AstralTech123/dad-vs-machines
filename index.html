@@ -214,6 +214,11 @@
                         background:#9be06f; border-bottom:2px solid #4f7d33; }
   #yardpanel .yardbtn:disabled { background:#39402f; color:#7c8272; border-bottom-color:#252a21; cursor:default; }
   #contractline { font-size:11px; color:#ffd166; letter-spacing:1px; text-shadow:0 1px 3px #000; margin-top:3px; }
+  @keyframes ultpulse {
+    0%,100% { box-shadow:0 0 6px rgba(255,209,102,.4); }
+    50%     { box-shadow:0 0 20px rgba(255,209,102,.95); }
+  }
+  #ultwrap.ready { animation:ultpulse 0.9s ease-in-out infinite; }
   #gowave { background:linear-gradient(180deg,#ffd97a,#f0a93a); color:#221c10;
             border-bottom:3px solid #a8701c; letter-spacing:1px; }
   #shoppanels { display:flex; gap:12px; margin-top:14px; flex-wrap:wrap; }
@@ -319,6 +324,10 @@
     <button class="bigbtn slim alt" id="pguidebtn">HOW TO PLAY</button>
     <button class="bigbtn slim alt" id="restartbtn">RESTART RUN</button>
     <button class="bigbtn slim alt" id="quitbtn">MAIN MENU</button>
+  </div>
+  <div class="menubtns">
+    <button class="bigbtn slim alt" id="musicbtn">MUSIC: ON</button>
+    <button class="bigbtn slim alt" id="sfxbtn">SFX: ON</button>
   </div>
   <div class="controls">Press <span class="kbd">P</span> or tap ⏸ to resume</div>
 </div>

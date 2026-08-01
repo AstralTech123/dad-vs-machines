@@ -114,8 +114,20 @@ function showWin(){
   show('win');
 }
 /* ---------------- shared stat sheet + guide ---------------- */
-function statsHTML(){
+function statsHTML(full){
   const st=G.stats;
+  let extra='';
+  if(full){
+    const rows=[];
+    const c=CHAMPS[G.champ];
+    if(c&&c.perk) rows.push('★ '+c.perkDesc);
+    rows.push('🚜 Mower ultimate: kills charge it ('+G.player.ult+'/'+st.ultNeed+'). Press E or tap the bar when full.');
+    for(const k in G.itemCounts){ const it=ITEMS[k]; if(it&&it.ability) rows.push(it.icon+' '+it.name+': '+it.note); }
+    for(const k in G.yard){ if(G.yard[k]>0) rows.push(YARD_UPGRADES[k].icon+' '+yardName(k)+' Lv'+G.yard[k]); }
+    const inv=Object.entries(G.itemCounts).map(([k,n])=> ITEMS[k]? ITEMS[k].icon+(n>1?'×'+n:'') : '').join(' ');
+    extra='<br><span class="sv">ABILITIES</span><br>'+rows.join('<br>')+
+      (inv?'<br><span class="sv">ITEMS OWNED</span> '+inv:'');
+  }
   return `<h3>${(CHAMPS[G.champ]||CHAMPS.dad).name.toUpperCase()} · LEVEL ${G.level||1} · ${DF().name}</h3>
     Max HP <span class="sv">${st.maxHP}</span> · Regen <span class="sv">${st.regen}/4s</span> ·
     Damage <span class="sv">${Math.round(st.dmg*100)}%</span> · Atk Speed <span class="sv">${Math.round(st.atk*100)}%</span><br>
@@ -123,7 +135,7 @@ function statsHTML(){
     Crit <span class="sv">${Math.round(st.crit*100)}%</span> · Pickup <span class="sv">${Math.round(st.pickup)}</span><br>
     Melee <span class="sv">${Math.round(st.meleeMul*100)}%</span> · Ranged <span class="sv">${Math.round(st.rangedMul*100)}%</span> ·
     Blast <span class="sv">${Math.round(st.blastMul*100)}%</span> · Dodge <span class="sv">${Math.round(st.dodge*100)}%</span> ·
-    Luck <span class="sv">${Math.round(st.luck*100)}%</span> · Lifesteal <span class="sv">${Math.round(st.lifesteal*100)}%</span>`;
+    Luck <span class="sv">${Math.round(st.luck*100)}%</span> · Lifesteal <span class="sv">${Math.round(st.lifesteal*100)}%</span>`+extra;
 }
 function buildGuide(){
   const statRows=[
@@ -187,6 +199,12 @@ document.getElementById('mguidebtn').addEventListener('click',()=>{ initAudio();
 document.getElementById('guideclose').addEventListener('click',()=>{ sfx.click(); hide('guide'); });
 document.getElementById('deadmenubtn').addEventListener('click',()=>{ sfx.click(); hide('dead'); newGame(); show('menu'); });
 document.getElementById('winmenubtn').addEventListener('click',()=>{ sfx.click(); hide('win'); newGame(); show('menu'); });
+document.getElementById('musicbtn').addEventListener('click',function(){
+  toggleMusic(); sfx.click(); this.textContent='MUSIC: '+(musicOn?'ON':'OFF');
+});
+document.getElementById('sfxbtn').addEventListener('click',function(){
+  toggleSfx(); this.textContent='SFX: '+(sfxOn?'ON':'OFF'); sfx.click();
+});
 
 /* ---------------- champion select ---------------- */
 let selChamp='dad', selDiff=2, selMap='yard';

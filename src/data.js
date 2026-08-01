@@ -278,16 +278,23 @@ const FAVORS = {
 /* ---------------- yard investments (per-run upgrades to the map itself) ---------------- */
 const YARD_UPGRADES = {
   grill: { name:'Grill Upgrade', icon:'🍔', costs:[20,40],
-    descs:['Grill cooks 35% faster','Burgers heal +10'] },
+    descs:['Grill cooks 35% faster','Burgers heal +10'],
+    oname:'Microwave Upgrade', odescs:['Microwave runs 35% faster','Snacks heal +10'] },
   sprink:{ name:'Sprinkler Pressure', icon:'💦', costs:[18,36],
-    descs:['Sprinkler hits 3x harder','Sprinkler arc twice as wide'] },
+    descs:['Sprinkler hits 3x harder','Sprinkler arc twice as wide'],
+    oname:'Fan Overclock', odescs:['Desk fan hits 3x harder','Fan arc twice as wide'] },
   tramp: { name:'Trampoline Grease', icon:'🤸', costs:[15,30],
-    descs:['Bigger launch and longer i-frames','Launching blasts machines away'] },
+    descs:['Bigger launch and longer i-frames','Launching blasts machines away'],
+    oname:'Chair Grease', odescs:['Bigger launch and longer i-frames','Launching blasts machines away'] },
   mower: { name:'Mower Tune-Up', icon:'🚜', costs:[25,50],
-    descs:['Mower ready 5 kills sooner','Mower runs 2 seconds longer'] },
+    descs:['Mower ready 5 kills sooner','Mower runs 2 seconds longer'],
+    oname:'Floor Buffer Keys', odescs:['Buffer ready 5 kills sooner','Buffer runs 2 seconds longer'] },
   pool:  { name:'Pool Chemicals', icon:'🏖️', costs:[12,24],
-    descs:['Machines slowed much harder in the pool','Machines rust: 4 damage per second in the pool'] },
+    descs:['Machines slowed much harder in the pool','Machines rust: 4 damage per second in the pool'],
+    oname:'Spill Solvent', odescs:['Machines slowed much harder in the spill','Machines corrode: 4 damage per second in the spill'] },
 };
+function yardName(k){ const u=YARD_UPGRADES[k]; return (MAPKEY==='office'&&u.oname)?u.oname:u.name; }
+function yardDescs(k){ const u=YARD_UPGRADES[k]; return (MAPKEY==='office'&&u.odescs)?u.odescs:u.descs; }
 
 /* ---------------- leveling ---------------- */
 function xpNeed(l){ return 10 + (l-1)*8; }

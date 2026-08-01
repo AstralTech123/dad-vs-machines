@@ -406,7 +406,7 @@ function gainXP(n){
   while(G.xp>=xpNeed(G.level)){
     G.xp-=xpNeed(G.level); G.level++; G.pendingLvls++;
     floatText(G.player.x,G.player.y-56,'LEVEL UP!','#ffd166',true);
-    sfx.combine();
+    sfx.levelup();
   }
 }
 function killEnemy(e){
@@ -1060,6 +1060,7 @@ function buyOffer(i){
     const it=ITEMS[o.key];
     applyItem(it);
     G.itemCounts[o.key]=(G.itemCounts[o.key]||0)+1;
+    if(it.rar===5) sfx.legendary();
   }
   renderShop(); renderSlots(); updateHUD();
 }
@@ -1146,13 +1147,14 @@ function renderShop(){
     ${wp}<br>Buy two of the same weapon + tier and they combine. Selling pays half.`;
   document.querySelectorAll('#weappanel .sellbtn').forEach(b=>
     b.addEventListener('click',()=>sellWeapon(Number(b.dataset.i))));
-  document.getElementById('yardpanel').innerHTML=`<h3>YARD WORK (lasts the whole run)</h3>`+
+  document.getElementById('yardpanel').innerHTML=
+    `<h3>${MAPKEY==='office'?'FACILITIES':'YARD WORK'} (lasts the whole run)</h3>`+
     Object.entries(YARD_UPGRADES).map(([k,u])=>{
       const lvl=G.yard[k], cost=yardCost(k);
       const btn = cost===null ? '<span style="color:#9be06f;font-weight:bold">MAXED</span>'
         : `<button class="yardbtn" data-k="${k}" ${G.mats>=cost?'':'disabled'}>🔩 ${cost}</button>`;
-      return `<div class="yrow">${u.icon} <span class="sv">${u.name}</span> ${'▪'.repeat(lvl)}<br>`+
-        `<span class="ydesc">${cost===null?'Fully upgraded':u.descs[lvl]}</span> ${btn}</div>`;
+      return `<div class="yrow">${u.icon} <span class="sv">${yardName(k)}</span> ${'▪'.repeat(lvl)}<br>`+
+        `<span class="ydesc">${cost===null?'Fully upgraded':yardDescs(k)[lvl]}</span> ${btn}</div>`;
     }).join('');
   document.querySelectorAll('#yardpanel .yardbtn').forEach(b=>
     b.addEventListener('click',()=>buyYard(b.dataset.k)));

@@ -103,7 +103,7 @@ function updatePad(){
 function togglePause(){
   if(G.mode==='play'){
     G.mode='pause';
-    document.getElementById('pausestats').innerHTML=statsHTML();
+    document.getElementById('pausestats').innerHTML=statsHTML(true);
     show('pause');
   }
   else if(G.mode==='pause'){ G.mode='play'; hide('pause'); }
@@ -142,6 +142,7 @@ function loop(now){
   const dt=Math.min(0.05,(now-last)/1000); last=now;
   AT+=dt;
   updatePad();
+  if(AC) setTrack(G.mode==='menu'?'menu':'game');
   updateFlies(dt);
   if(G.mode==='menu'){ updateDecor(dt); G.player.bob+=dt*3; SPRINK.a+=0.75*dt; }
   if(G.mode==='play'){
