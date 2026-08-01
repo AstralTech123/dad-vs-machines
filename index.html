@@ -89,6 +89,15 @@
   #touchnote { margin-top:12px; font-size:12px; color:#e0a34d; display:none; }
 
   #champsel { background:rgba(8,10,8,.72); backdrop-filter:blur(3px); text-align:center; z-index:8; padding:12px; overflow:auto; }
+  #levelup { background:rgba(8,10,8,.78); backdrop-filter:blur(3px); text-align:center; z-index:11; padding:12px; }
+  #lvlchoices { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px;
+                width:min(700px,94vw); margin:18px auto 0; pointer-events:auto; }
+  .lvlcard { background:#191d17; border:2px solid #4a5044; border-radius:12px; padding:16px 10px;
+             cursor:pointer; transition:transform .08s, border-color .08s; }
+  .lvlcard:hover { transform:translateY(-3px); border-color:#ffd166; }
+  .lvlcard .lt { font-weight:bold; font-size:16px; color:#ffd166; }
+  .lvlcard .ld { margin-top:6px; font-size:12px; color:#aca595; line-height:1.4; }
+  #lvlchip { font-size:11px; color:#ffd166; letter-spacing:1px; text-shadow:0 1px 3px #000; margin-top:2px; }
   .cstitle { font-size:clamp(22px,4vw,34px); font-weight:900; letter-spacing:4px; color:#f4eeda;
              text-shadow:0 3px 0 #23271f, 0 8px 24px rgba(0,0,0,.7); }
   .cssub { font-size:13px; color:#a39c8a; letter-spacing:1px; margin-top:4px; }
@@ -166,6 +175,7 @@
     <div id="hpbar"><div id="hpfill"></div></div>
     <div id="hptext">50 / 50</div>
     <div id="armorchip"></div>
+    <div id="lvlchip"></div>
   </div>
   <div id="wavewrap">
     <div id="wavelabel">WAVE</div>
@@ -205,6 +215,12 @@
   <button class="bigbtn" id="startbtn">CLOCK IN</button>
   <div id="touchnote">Touch: drag to move, two-finger tap to dash, tap the mower bar to ride.</div>
   <div class="credit">Handcrafted artisanal code. No machines were consulted.</div>
+</div>
+
+<div id="levelup" class="overlay hidden">
+  <h2 class="cstitle">LEVEL UP</h2>
+  <div class="cssub" id="lvlsub">PICK AN UPGRADE</div>
+  <div id="lvlchoices"></div>
 </div>
 
 <div id="champsel" class="overlay hidden">

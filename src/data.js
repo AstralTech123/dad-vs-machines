@@ -176,6 +176,25 @@ const CHAMPS = {
             perkDesc:'Oorah: below half HP he deals +25% damage.' },
 };
 
+/* ---------------- leveling ---------------- */
+function xpNeed(l){ return 10 + (l-1)*8; }
+const LEVEL_UPS = [
+  { t:'+7 Max HP', d:'Tougher. Also heals 7.', a:st=>{ st.maxHP+=7; G.hp=Math.min(G.hp+7,st.maxHP); } },
+  { t:'+1 Regen', d:'Every 4 seconds.', a:st=>st.regen+=1 },
+  { t:'+6% Damage', d:'All damage.', a:st=>st.dmg+=0.06 },
+  { t:'+6% Attack Speed', d:'Everything fires faster.', a:st=>st.atk+=0.06 },
+  { t:'+14 Move Speed', d:'New stride unlocked.', a:st=>st.move+=14 },
+  { t:'+1 Armor', d:'Flat damage reduction.', a:st=>st.armor+=1 },
+  { t:'+4% Crit', d:'Chance to double up.', a:st=>st.crit+=0.04 },
+  { t:'+20 Pickup Range', d:'Bolts come to you.', a:st=>st.pickup+=20 },
+  { t:'+4% Dodge', d:'Chance to avoid hits entirely.', a:st=>st.dodge+=0.04 },
+  { t:'+8% Luck', d:'Better loot, better shop tiers.', a:st=>st.luck+=0.08 },
+  { t:'+8% Melee Damage', d:'Blower and whacker class.', a:st=>st.meleeMul+=0.08 },
+  { t:'+8% Ranged Damage', d:'Staples, darts, drivers.', a:st=>st.rangedMul+=0.08 },
+  { t:'+8% Blast Damage', d:'Explosions and caster tools.', a:st=>st.blastMul+=0.08 },
+  { t:'+2% Lifesteal', d:'Damage dealt heals you.', a:st=>st.lifesteal+=0.02 },
+];
+
 /* per-champ palette for the vector character art; missing keys fall back to
    the dad's default look. PNG sprites replace this whole system in Phase 2. */
 const LOOKS = {

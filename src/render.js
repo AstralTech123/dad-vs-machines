@@ -20,6 +20,25 @@ function updateHUD(){
   if(P.mowT>0){ ut.textContent='MOWING'; uw.className=''; }
   else if(P.ult>=ULT_NEED){ ut.textContent='🚜 MOWER READY (E)'; uw.className='ready'; }
   else { ut.textContent='MOWER '+P.ult+'/'+ULT_NEED; uw.className=''; }
+  document.getElementById('lvlchip').textContent='LV '+(G.level||1)+' · '+Math.floor(G.xp||0)+'/'+xpNeed(G.level||1)+' XP';
+}
+function showLevelUp(){
+  show('levelup');
+  document.getElementById('lvlsub').textContent='PICK AN UPGRADE'+(G.pendingLvls>1?' ('+G.pendingLvls+' BANKED)':'');
+  const box=document.getElementById('lvlchoices'); box.innerHTML='';
+  const pool=[...LEVEL_UPS], picks=[];
+  for(let i=0;i<4&&pool.length;i++) picks.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+  for(const u of picks){
+    const el=document.createElement('div');
+    el.className='lvlcard';
+    el.innerHTML=`<div class="lt">${u.t}</div><div class="ld">${u.d}</div>`;
+    el.addEventListener('click',()=>{
+      u.a(G.stats); sfx.buy(); G.pendingLvls--; updateHUD();
+      if(G.pendingLvls>0) showLevelUp();
+      else { hide('levelup'); openShop(); }
+    });
+    box.appendChild(el);
+  }
 }
 function renderSlots(){
   const box=document.getElementById('slotwrap'); box.innerHTML='';

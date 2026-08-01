@@ -369,10 +369,19 @@ function hitEnemy(e, dmg, ang, knock, crit){
   for(let k=0;k<3;k++) spawnPart(e.x,e.y, ang+rand(-0.7,0.7), rand(80,220), 0.25, blocked?'#9ecbff':'#ffd166', 2);
   if(e.hp<=0) killEnemy(e);
 }
+function gainXP(n){
+  G.xp+=n;
+  while(G.xp>=xpNeed(G.level)){
+    G.xp-=xpNeed(G.level); G.level++; G.pendingLvls++;
+    floatText(G.player.x,G.player.y-56,'LEVEL UP!','#ffd166',true);
+    sfx.combine();
+  }
+}
 function killEnemy(e){
   const idx=G.enemies.indexOf(e); if(idx<0) return;
   G.enemies.splice(idx,1);
   G.kills++;
+  gainXP(e.key==='boss'||e.key==='algo' ? 30 : e.def.elite ? 12 : e.def.mats);
   const P=G.player;
   if(P.ult<ULT_NEED){
     P.ult++;
@@ -804,7 +813,7 @@ function updateWaveFlow(dt){
     G.subT+=dt;
     if(G.pickups.length===0 && G.subT>0.9){
       if(G.wave===FINAL_WAVE){ showWin(); G.sub='done'; }
-      else { openShop(); G.sub='shopping'; }
+      else { G.mode='shop'; G.sub='shopping'; if(G.pendingLvls>0) showLevelUp(); else openShop(); }
     }
   }
 }

@@ -14,6 +14,7 @@ function newGame(){
   G = {
     mode:'menu', t:0, wave:0, waveTime:0, sub:'play', subT:0,
     champ:'dad', perk:null,
+    xp:0, level:1, pendingLvls:0,
     mats:0, kills:0, totalMats:0,
     stats:{ maxHP:50, regen:0, dmg:1, atk:1, move:240, armor:0, pickup:80, crit:0.03,
       critMul:2, priceMul:1, rerollMul:1, dashCdMax:2.5, dashIF:0.35, rangeMul:1,
