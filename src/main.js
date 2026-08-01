@@ -8,19 +8,6 @@
    active abilities: SPACE dash and the rideable mower ultimate on E.
    ========================================================================= */
 
-/* ---------------- utils ---------------- */
-const TAU = Math.PI * 2;
-const rand = (a,b) => a + Math.random()*(b-a);
-const clamp = (v,a,b) => v<a?a:(v>b?b:v);
-const dist2 = (ax,ay,bx,by) => { const dx=ax-bx, dy=ay-by; return dx*dx+dy*dy; };
-const lerp = (a,b,t) => a+(b-a)*t;
-const angDiff = (a,b) => { let d=(b-a)%TAU; if(d>Math.PI)d-=TAU; if(d<-Math.PI)d+=TAU; return d; };
-const pick = arr => arr[Math.floor(Math.random()*arr.length)];
-function wpick(list){ let tot=0; for(const e of list) tot+=e[1];
-  let r=Math.random()*tot;
-  for(const e of list){ r-=e[1]; if(r<=0) return e[0]; }
-  return list[list.length-1][0]; }
-
 /* ---------------- game state ---------------- */
 let G=null, AT=0;
 function newGame(){
