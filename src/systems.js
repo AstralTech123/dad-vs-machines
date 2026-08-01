@@ -86,8 +86,10 @@ function applyChamp(key){
   const st=G.stats, m=c.mods||{};
   st.maxHP+=(m.maxHP||0); st.move+=(m.move||0); st.dmg+=(m.dmg||0); st.atk+=(m.atk||0);
   st.crit+=(m.crit||0); st.armor+=(m.armor||0); st.pickup+=(m.pickup||0); st.regen+=(m.regen||0);
+  // weapon class identity: preferred class gets a bonus, restricted champs a bigger one
+  if(c.wpref) st[c.wpref+'Mul'] += (c.wonly? 0.35 : 0.2);
   if(c.perk==='complaint') st.auraSlow=0.28;
-  else if(c.perk==='whistle') st.meleeMul=1.3;
+  else if(c.perk==='whistle') st.meleeMul+=0.3;
   else if(c.perk==='overclock') st.critMul=3;
   else if(c.perk==='grillmaster'){ st.burgerMul=2; st.grillMul=0.45; G.grillT=4; }
   else if(c.perk==='coupons'){ st.priceMul=0.8; st.rerollMul=0.5; }
@@ -992,14 +994,21 @@ function rollOffers(){
   for(let i=0;i<4;i++){
     const isWeapon = Math.random()<0.42;
     const tier=tierRoll();
+    const pref=(CHAMPS[G.champ]||{}).wpref;
     if(isWeapon){
-      const key=pick(Object.keys(WEAPONS));
+      // never offer what this champ cannot equip; lean toward their class
+      const wpool=Object.keys(WEAPONS).filter(k=>champCanUse(WEAPONS[k].cls));
+      const key=wpick(wpool.map(k=>[k, WEAPONS[k].cls===pref?3:1]));
       offers.push({ kind:'w', key, tier, price:priceOf('w',key,tier), sold:false });
     } else {
       const rar=rarityRoll();
       let pool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar===rar && !(rar===5 && G.itemCounts[k]));
       if(!pool.length) pool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar===1);
-      const key=pick(pool);
+      // class-tagged items show up more often for the class that wants them
+      const key=wpick(pool.map(k=>{
+        const st=ITEMS[k].stats||{};
+        return [k, (pref && st[pref+'Mul'])?3:1];
+      }));
       offers.push({ kind:'i', key, tier:ITEMS[key].rar, price:priceOf('i',key,1), sold:false });
     }
   }
@@ -1043,6 +1052,7 @@ function rerollShop(){
 function canBuy(o){
   if(o.sold || G.mats<o.price) return false;
   if(o.kind==='w'){
+    if(!champCanUse(WEAPONS[o.key].cls)) return false;
     const slotsFull = G.weapons.length>=MAX_SLOTS;
     const hasPair = G.weapons.some(w=> w.key===o.key && w.tier===o.tier && o.tier<3);
     if(slotsFull && !hasPair) return false;

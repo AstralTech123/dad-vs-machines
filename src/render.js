@@ -277,10 +277,13 @@ function renderChampDetail(){
   if(m.crit) parts.push('Crit '+fmt(Math.round(m.crit*100),'%'));
   if(m.armor) parts.push('Armor '+fmt(m.armor));
   if(m.pickup) parts.push('Pickup '+fmt(m.pickup));
+  const wline = c.wonly ? c.wonly.map(x=>x.toUpperCase()).join(' + ')+' WEAPONS ONLY (+35% class damage)'
+    : c.wpref ? 'Prefers '+c.wpref.toUpperCase()+' weapons (+20% class damage)'
+    : 'Uses any weapon';
   document.getElementById('champdetail').innerHTML=
     `<div class="cblurb">${c.blurb}</div>`+
     `<div class="cstats">${parts.length?parts.join(' · '):'Standard issue neighbor stats'}</div>`+
-    `<div class="cweap">Starts with: ${WEAPONS[c.weapon].name}</div>`+
+    `<div class="cweap">Starts with: ${WEAPONS[c.weapon].name} · ${wline}</div>`+
     `<div class="cperk">${c.perkDesc}</div>`;
 }
 document.getElementById('startbtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('menu'); buildChampSelect(); show('champsel'); });
