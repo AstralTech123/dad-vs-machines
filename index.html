@@ -132,8 +132,10 @@
   .champcard .cprole.tank { color:#6aa8f0; } .champcard .cprole.melee { color:#ff9a66; }
   .champcard .cprole.ranged { color:#9be06f; } .champcard .cprole.caster { color:#c48df0; }
   .champcard .cprole.support { color:#ffd166; }
-  #diffrow { display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin:12px auto 0;
+  #diffrow, #maprow { display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin:12px auto 0;
              width:min(760px,94vw); pointer-events:auto; }
+  #maprow { margin-top:14px; }
+  #maprow .diffchip.sel { border-color:#9be06f; box-shadow:0 0 12px rgba(155,224,111,.25); }
   .diffchip { font-size:11px; letter-spacing:1.5px; font-weight:bold; padding:7px 12px; cursor:pointer;
               border-radius:9px; background:#191d17; border:2px solid #333a30; color:#8b93a3;
               transition:border-color .08s; }
@@ -288,6 +290,7 @@
   <h2 class="cstitle">CHOOSE YOUR NEIGHBOR</h2>
   <div class="cssub">SOMEBODY HAS TO DEAL WITH THIS</div>
   <div id="champgrid"></div>
+  <div id="maprow"></div>
   <div id="diffrow"></div>
   <div id="champdetail"></div>
   <button class="bigbtn" id="champstart">START THE SHIFT</button>

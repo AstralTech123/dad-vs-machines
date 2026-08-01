@@ -704,7 +704,7 @@ function updateYard(dt){
     if(G.grillT<=0){
       G.burgerOut=true; G.grillT=26*G.stats.grillMul;
       G.pickups.push({ x:BURGER_SPOT.x, y:BURGER_SPOT.y, vx:0, vy:0, mag:false, t:0, kind:'burger', val:15, grill:true });
-      toast('🍔 Burgers are ready at the grill');
+      toast(MAPKEY==='office' ? '🍔 Something is ready in the break room microwave' : '🍔 Burgers are ready at the grill');
       sfx.sizzle();
     }
   }
@@ -757,7 +757,7 @@ function updateYard(dt){
   for(let k=0;k<2;k++){
     const t=rand(0.15,1);
     spawnPart(SPRINK.x+jx*170*t, SPRINK.y+jy*170*t,
-      SPRINK.a+rand(-0.25,0.25), rand(20,60), 0.35, '#7fc7e8', 2);
+      SPRINK.a+rand(-0.25,0.25), rand(20,60), 0.35, MAPKEY==='office'?'#e8e4da':'#7fc7e8', 2);
   }
   for(const e of G.enemies){
     if(e.key==='boss'||e.key==='algo') continue;

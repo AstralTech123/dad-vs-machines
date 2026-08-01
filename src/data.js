@@ -131,6 +131,15 @@ const MAX_SLOTS = 6;
 const ULT_NEED = 25;
 const BOSS_WAVES = {5:'algo', 10:'boss'};
 
+/* ---------------- maps ----------------
+   both maps share the same obstacle geometry (proven balance); each gets its
+   own art, labels, and flavor. MAPKEY drives every visual branch. */
+const MAPS = {
+  yard:  { name:'THE BACKYARD',     desc:'Where it all started.' },
+  office:{ name:'CORPORATE OFFICE', desc:'The machines took the third floor.' },
+};
+let MAPKEY='yard';
+
 /* ---------------- yard layout: obstacles + interactive props ---------------- */
 const ARENA_W=2600, ARENA_H=2000;
 const OBST = [
