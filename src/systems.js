@@ -55,6 +55,9 @@ function startWave(n){
   if(n>=2){ G.eliteQ.push(dur*0.5);
     if(n>=5) G.eliteQ.push(dur*0.24);
     if(n>=8) G.eliteQ.unshift(dur*0.72); }
+  // mini fridge: a cold burger waits at the start of every wave
+  for(let f=0; f<(G.abil.fridge||0); f++)
+    G.pickups.push({ x:1300+rand(-70,70), y:1080+rand(-20,20), vx:0, vy:0, mag:false, t:0, kind:'burger', val:15 });
   // neighbor favor: revert last wave's boost, then apply the queued one
   if(G.favorApplied){ for(const k in G.favorApplied) G.stats[k]-=G.favorApplied[k]; G.favorApplied=null; }
   if(G.favorNext){
@@ -469,6 +472,11 @@ function updateEnemies(dt){
     const inPool=inMud(e.x,e.y);
     const mudF = inPool?(G.yard.pool>=1?0.36:0.55):1;
     if(inPool && G.yard.pool>=2){ e.hp-=4*dt; if(e.hp<=0){ killEnemy(e); continue; } }
+    if(G.abil.zapaura && d<150){
+      e.hp-=3*G.abil.zapaura*dt;
+      if(Math.random()<dt*5) spawnPart(e.x,e.y,rand(0,TAU),rand(20,70),0.2,'#8fd8ff',2);
+      if(e.hp<=0){ killEnemy(e); continue; }
+    }
     const auraF = (G.stats.auraSlow && d<190) ? 1-G.stats.auraSlow : 1;
     const sp = e.spd*mudF*auraF;
     const ai=e.def.ai;
@@ -712,6 +720,33 @@ function updateYard(dt){
       sfx.drop();
     }
   }
+  // gnome of war: trails the player, staples the nearest machine
+  for(const g of G.gnomes){
+    const gd=Math.hypot(P.x-g.x,P.y-g.y);
+    if(gd>90){ const ga=Math.atan2(P.y-g.y,P.x-g.x); g.x+=Math.cos(ga)*150*dt; g.y+=Math.sin(ga)*150*dt; }
+    [g.x,g.y]=resolveObst(g.x,g.y,10);
+    g.cd-=dt;
+    if(g.cd<=0){
+      const t=nearestEnemy(g.x,g.y,320);
+      if(t){
+        g.cd=0.55;
+        const a=Math.atan2(t.y-g.y,t.x-g.x);
+        G.bullets.push({ x:g.x, y:g.y, vx:Math.cos(a)*520, vy:Math.sin(a)*520, dmg:4,
+          pierce:0, r:4, life:0.7, key:'stapler', aoe:0, knock:40, crit:false,
+          boom:false, phase:0, spin:0, hitSet:{} });
+        sfx.shoot(1.8);
+      }
+    }
+  }
+  // overtime pay: bolts trickle in while the wave runs
+  if(G.abil.overtime && G.sub==='play'){
+    G.otT+=dt;
+    if(G.otT>=3){
+      G.otT-=3; G.mats+=G.abil.overtime; G.totalMats+=G.abil.overtime;
+      floatText(P.x,P.y-54,'+'+G.abil.overtime+' 🔩 overtime','#ffd166');
+      updateHUD();
+    }
+  }
   // sprinkler
   SPRINK.a += 0.75*dt;
   const jx=Math.cos(SPRINK.a), jy=Math.sin(SPRINK.a);
@@ -930,8 +965,23 @@ function tierRoll(){
   if(r<t3) return 3; if(r<t3+t2) return 2; return 1;
 }
 function priceOf(kind,key,tier){
-  const base = kind==='w'? WEAPONS[key].price : ITEMS[key].price;
-  return Math.max(1, Math.round(base * TIER[tier].priceMul * (1+0.09*(G.wave-1)) * G.stats.priceMul));
+  if(kind==='w')
+    return Math.max(1, Math.round(WEAPONS[key].price * TIER[tier].priceMul * (1+0.09*(G.wave-1)) * G.stats.priceMul));
+  return Math.max(1, Math.round(ITEMS[key].price * (1+0.06*(G.wave-1)) * G.stats.priceMul));
+}
+function rarityRoll(){
+  const w=G.wave, lk=1+G.stats.luck;
+  const ww={
+    1:RARITY[1].w,
+    2:RARITY[2].w,
+    3:RARITY[3].w*lk*(1+0.08*w),
+    4:RARITY[4].w*lk*(1+0.10*w),
+    5:(w>=5? RARITY[5].w*lk*(1+0.12*w) : 0),
+  };
+  let tot=0; for(const k in ww) tot+=ww[k];
+  let r=Math.random()*tot;
+  for(const k in ww){ r-=ww[k]; if(r<=0) return Number(k); }
+  return 1;
 }
 function rollOffers(){
   const offers=[];
@@ -942,8 +992,11 @@ function rollOffers(){
       const key=pick(Object.keys(WEAPONS));
       offers.push({ kind:'w', key, tier, price:priceOf('w',key,tier), sold:false });
     } else {
-      const key=pick(Object.keys(ITEMS));
-      offers.push({ kind:'i', key, tier, price:priceOf('i',key,tier), sold:false });
+      const rar=rarityRoll();
+      let pool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar===rar && !(rar===5 && G.itemCounts[k]));
+      if(!pool.length) pool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar===1);
+      const key=pick(pool);
+      offers.push({ kind:'i', key, tier:ITEMS[key].rar, price:priceOf('i',key,1), sold:false });
     }
   }
   G.shop.offers=offers;
@@ -1001,7 +1054,7 @@ function buyOffer(i){
     tryCombine(o.key,o.tier);
   } else {
     const it=ITEMS[o.key];
-    applyItem(it,o.tier);
+    applyItem(it);
     G.itemCounts[o.key]=(G.itemCounts[o.key]||0)+1;
   }
   renderShop(); renderSlots(); updateHUD();
@@ -1018,35 +1071,60 @@ function tryCombine(key,tier){
     tryCombine(key,tier+1);
   }
 }
-function applyItem(it,tier){
-  const v=it.vals[tier-1], st=G.stats;
-  if(it.stat==='maxHP'){ st.maxHP+=v; G.hp+=v; }
-  else if(it.stat==='regen') st.regen+=v;
-  else if(it.stat==='dmg') st.dmg+=v;
-  else if(it.stat==='atk') st.atk+=v;
-  else if(it.stat==='move') st.move*= (1+v);
-  else if(it.stat==='armor') st.armor+=v;
-  else if(it.stat==='pickup') st.pickup+=v;
-  else if(it.stat==='crit') st.crit+=v;
+function applyItem(it){
+  const st=G.stats;
+  for(const k in (it.stats||{})){
+    st[k]+=it.stats[k];
+    if(k==='maxHP' && it.stats[k]>0) G.hp+=it.stats[k];
+  }
+  st.ultNeed=Math.max(5, st.ultNeed);
+  st.dashCdMax=Math.max(0.6, st.dashCdMax);
+  G.hp=Math.max(1, Math.min(G.hp, st.maxHP));
+  if(it.ability==='mortgage'){ G.mats+=70; st.priceMul+=0.1; }
+  else if(it.ability==='gnome'){
+    G.abil.gnome=(G.abil.gnome||0)+1;
+    G.gnomes.push({ x:G.player.x+rand(-50,50), y:G.player.y+rand(-50,50), cd:0 });
+  }
+  else if(it.ability){ G.abil[it.ability]=(G.abil[it.ability]||0)+1; }
+}
+const STAT_FMT={
+  maxHP:v=>sg(v)+' Max HP', regen:v=>sg(v)+' Regen', dmg:v=>pc(v)+' Damage',
+  atk:v=>pc(v)+' Atk Speed', move:v=>sg(v)+' Move', armor:v=>sg(v)+' Armor',
+  pickup:v=>sg(v)+' Pickup', crit:v=>pc(v)+' Crit', critMul:v=>sg(v)+'x Crit Dmg',
+  dodge:v=>pc(v)+' Dodge', luck:v=>pc(v)+' Luck', lifesteal:v=>pc(v)+' Lifesteal',
+  meleeMul:v=>pc(v)+' Melee', rangedMul:v=>pc(v)+' Ranged', blastMul:v=>pc(v)+' Blast',
+  rangeMul:v=>pc(v)+' Range', areaMul:v=>pc(v)+' Area', burgerMul:v=>pc(v)+' Burger Heal',
+  thorns:v=>sg(v)+' Thorns', dashCdMax:v=>(v>0?'+':'')+v+'s Dash CD',
+  ultNeed:v=>sg(v)+' Mower Kills', mowDur:v=>sg(v)+'s Mower Time',
+  priceMul:v=>pc(v)+' Shop Prices', auraSlow:v=>pc(v)+' Slow Aura',
+};
+function sg(v){ return (v>0?'+':'')+v; }
+function pc(v){ return (v>0?'+':'')+Math.round(v*100)+'%'; }
+function fmtItemStats(d){
+  return Object.entries(d.stats||{}).map(([k,v])=> STAT_FMT[k]? STAT_FMT[k](v) : k+' '+v).join(' · ');
 }
 function renderShop(){
   document.getElementById('shopmats').textContent='🔩 '+G.mats;
   document.getElementById('gowave').textContent='START WAVE '+(G.wave+1)+' →';
   const box=document.getElementById('offers'); box.innerHTML='';
   G.shop.offers.forEach((o,i)=>{
-    const t=TIER[o.tier];
-    let iconHTML,name,desc;
-    if(o.kind==='w'){ const d=WEAPONS[o.key];
+    let iconHTML,name,desc,tierHTML,cls;
+    if(o.kind==='w'){ const d=WEAPONS[o.key], t=TIER[o.tier];
       iconHTML=`<img src="${ICONURL[o.key]}" alt="">`; name=d.name;
       desc=d.desc+`<br><span style="color:#ece7db">DMG ${Math.round(d.dmg*t.dmg)} · every ${(d.cd*t.cd).toFixed(2)}s</span>`;
       if(G.weapons.length>=MAX_SLOTS && !G.weapons.some(w=>w.key===o.key&&w.tier===o.tier&&o.tier<3))
         desc+='<br><span style="color:#e0a34d">Slots full. Needs a matching pair to combine.</span>';
-    } else { const d=ITEMS[o.key]; iconHTML=d.icon; name=d.name;
-      desc=`<span style="color:#ece7db">${d.fmt(d.vals[o.tier-1])}</span><br>${d.note}`; }
+      tierHTML=`<div class="ctier">${t.name} WEAPON</div>`; cls='t'+o.tier;
+    } else { const d=ITEMS[o.key], r=RARITY[o.tier];
+      iconHTML=d.icon; name=d.name;
+      const stats=fmtItemStats(d);
+      desc=(stats?`<span style="color:#ece7db">${stats}</span><br>`:'')+(d.note||'');
+      tierHTML=`<div class="ctier" style="color:${r.color}">${r.name}</div>`; cls='r'+o.tier;
+    }
     const div=document.createElement('div');
-    div.className='card t'+o.tier+(o.sold?' sold':'');
+    div.className='card '+cls+(o.sold?' sold':'');
     div.innerHTML=`<div class="cicon">${iconHTML}</div><div class="cname">${name}</div>
-      <div class="ctier">${t.name}${o.kind==='w'?' WEAPON':''}</div>
+      ${tierHTML}
       <div class="cdesc">${desc}</div>
       <button ${canBuy(o)?'':'disabled'}>${o.sold?'SOLD':'🔩 '+o.price}</button>`;
     div.querySelector('button').addEventListener('click',()=>buyOffer(i));

@@ -159,6 +159,12 @@ function buildGuide(){
     <h3>LEVELING</h3>
     <p>Machines grant XP, elites and bosses grant piles of it. Every level banks a free upgrade,
     chosen one of four at wave end before the shop opens.</p>
+    <h3>ITEMS</h3>
+    <p>Over 50 items in five rarities: <span style="color:#8b93a3">COMMON</span>,
+    <span style="color:#9be06f">UNCOMMON</span>, <span style="color:#6aa8f0">RARE</span>,
+    <span style="color:#c48df0">EPIC</span>, <span style="color:#ffd166">LEGENDARY</span>.
+    Higher rarities pack more stats or unique abilities. Legendaries appear from wave 5,
+    once per run. Luck improves your odds at everything.</p>
     <h3>WEAPONS</h3>
     <p>Six slots. Buy two of the same weapon at the same tier and they combine into the next tier.</p>
     <table>${weapRows}</table>
@@ -595,6 +601,15 @@ function drawBody(c,L,f,step){
   c.fillStyle='#2a2a2a';
   c.fillRect(f===1?-2.5:-5,-21,2.6,2.6); c.fillRect(f===1?3:0.5,-21,2.6,2.6);
   if(L.must){ c.fillStyle=L.must; c.fillRect(-4,-15.5,8,2.2); }
+}
+function drawGnome(g){
+  ctx.save(); ctx.translate(g.x,g.y);
+  ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0,10,9,3.5,0,0,TAU); ctx.fill();
+  ctx.fillStyle='#3f6b94'; ctx.fillRect(-5,-2,10,10);
+  ctx.fillStyle='#e8e4da'; ctx.beginPath(); ctx.arc(0,-4,5,0,TAU); ctx.fill();
+  ctx.fillStyle='#e8c49a'; ctx.fillRect(-2.5,-7,5,3);
+  ctx.fillStyle='#c22e35'; ctx.beginPath(); ctx.moveTo(-5,-7); ctx.lineTo(5,-7); ctx.lineTo(0,-19); ctx.closePath(); ctx.fill();
+  ctx.restore();
 }
 /* small always-on HP bar above the character so eyes stay on the action */
 function drawPlayerHP(P){
@@ -1128,6 +1143,7 @@ function draw(){
     }
     for(const p of G.pickups) drawPickup(p);
     for(const e of G.enemies) drawEnemy(e);
+    for(const g of G.gnomes) drawGnome(g);
     if(!G.player.dead){
       if(G.player.mowT>0) drawMower(G.player);
       else { drawDad(G.player); drawWeapons(); }
