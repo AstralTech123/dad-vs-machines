@@ -12,8 +12,19 @@ function tryDash(){
   let len=Math.hypot(ix,iy);
   if(len<0.01){ ix=P.face; iy=0; len=1; }
   P.ddx=ix/len; P.ddy=iy/len;
-  P.dashT=0.13; P.dashCd=2.5;
-  P.iframe=Math.max(P.iframe,0.35);
+  P.dashT=0.13; P.dashCd=G.stats.dashCdMax;
+  P.iframe=Math.max(P.iframe,G.stats.dashIF);
+  if(G.perk==='whistle'){
+    for(const e of [...G.enemies]){
+      const d=Math.hypot(e.x-P.x,e.y-P.y);
+      if(d<170){
+        const a=Math.atan2(e.y-P.y,e.x-P.x);
+        const kr=e.def.knockR!==undefined?e.def.knockR:1;
+        e.kx+=Math.cos(a)*520*kr; e.ky+=Math.sin(a)*520*kr;
+      }
+    }
+    sfx.spring();
+  }
   sfx.dashw();
 }
 function tryMow(){
@@ -56,6 +67,16 @@ function applyChamp(key){
   const st=G.stats, m=c.mods||{};
   st.maxHP+=(m.maxHP||0); st.move+=(m.move||0); st.dmg+=(m.dmg||0); st.atk+=(m.atk||0);
   st.crit+=(m.crit||0); st.armor+=(m.armor||0); st.pickup+=(m.pickup||0); st.regen+=(m.regen||0);
+  if(c.perk==='complaint') st.auraSlow=0.28;
+  else if(c.perk==='whistle') st.meleeMul=1.3;
+  else if(c.perk==='overclock') st.critMul=3;
+  else if(c.perk==='grillmaster'){ st.burgerMul=2; st.grillMul=0.45; G.grillT=4; }
+  else if(c.perk==='coupons'){ st.priceMul=0.8; st.rerollMul=0.5; }
+  else if(c.perk==='flow'){ st.dashCdMax=1.25; st.dashIF=0.55; }
+  else if(c.perk==='binoculars') st.rangeMul=1.25;
+  else if(c.perk==='thorns') st.thorns=8;
+  else if(c.perk==='bookclub') st.areaMul=1.45;
+  else if(c.perk==='oorah') st.rage=0.25;
   G.hp=st.maxHP;
   G.weapons=[ mkWeapon(c.weapon||'stapler',1) ];
   updateHUD(); renderSlots();
@@ -193,6 +214,12 @@ function damagePlayer(raw){
   const dmg=Math.max(1, Math.round(raw - G.stats.armor));
   G.hp-=dmg; P.iframe=0.7; G.cam.shake=Math.min(18,G.cam.shake+7);
   floatText(P.x,P.y-46,'-'+dmg,'#ff5a5f'); sfx.hurt();
+  if(G.stats.thorns){
+    for(const e of [...G.enemies]){
+      if(dist2(P.x,P.y,e.x,e.y)<(e.def.r+42)*(e.def.r+42))
+        hitEnemy(e, G.stats.thorns, Math.atan2(e.y-P.y,e.x-P.x), 160, false);
+    }
+  }
   if(G.hp<=0){ G.hp=0; P.dead=true; P.deadT=0; playerDeathFX(); }
   updateHUD();
 }
@@ -230,7 +257,7 @@ function updateWeapons(dt){
         if(e['_wk'+i]>G.t) continue;
         if(dist2(bx,by,e.x,e.y) < (20+e.def.r)*(20+e.def.r)){
           e['_wk'+i]=G.t + ts.cd/G.stats.atk;
-          hitEnemy(e, ts.dmg, Math.atan2(e.y-P.y,e.x-P.x), 120, rollCrit());
+          hitEnemy(e, ts.dmg*G.stats.meleeMul, Math.atan2(e.y-P.y,e.x-P.x), 120, rollCrit());
         }
       }
       return;
@@ -238,7 +265,7 @@ function updateWeapons(dt){
     const slotA = -Math.PI/2 + (i-(n-1)/2)*0.55;
     w.hx = P.x + Math.cos(slotA)*30;
     w.hy = P.y + Math.sin(slotA)*30 - 2;
-    const tgt = nearestEnemy(P.x,P.y, def.range||500);
+    const tgt = nearestEnemy(P.x,P.y, (def.range||500)*G.stats.rangeMul);
     if(tgt){ w.aim = lerp0(w.aim, Math.atan2(tgt.y-w.hy, tgt.x-w.hx), 14*dt); }
     else { w.aim = lerp0(w.aim, P.face===1?-0.2:Math.PI+0.2, 6*dt); }
     if(!tgt || w.cd>0) return;
@@ -248,8 +275,8 @@ function updateWeapons(dt){
       const baseA=w.aim;
       for(const e of G.enemies){
         const d=Math.hypot(e.x-P.x,e.y-P.y);
-        if(d<def.range+e.def.r && Math.abs(angDiff(baseA,Math.atan2(e.y-P.y,e.x-P.x)))<def.cone){
-          hitEnemy(e, ts.dmg, baseA, def.knock, rollCrit());
+        if(d<def.range*G.stats.rangeMul+e.def.r && Math.abs(angDiff(baseA,Math.atan2(e.y-P.y,e.x-P.x)))<def.cone){
+          hitEnemy(e, ts.dmg*G.stats.meleeMul, baseA, def.knock, rollCrit());
         }
       }
       for(let k=0;k<4;k++) spawnPart(w.hx,w.hy, baseA+rand(-0.4,0.4), rand(240,380), 0.3, '#bde8c4', 2);
@@ -261,8 +288,8 @@ function updateWeapons(dt){
       const spread = def.spread? (c-(count-1)/2)*def.spread : rand(-0.03,0.03);
       const a=w.aim+spread;
       G.bullets.push({ x:w.hx, y:w.hy, vx:Math.cos(a)*def.speed, vy:Math.sin(a)*def.speed,
-        dmg:ts.dmg, pierce:def.pierce||0, r:def.aoe?7:5, life:(def.range||400)/def.speed,
-        key:w.key, aoe:def.aoe||0, knock:def.knock||60, crit:rollCrit(),
+        dmg:ts.dmg, pierce:def.pierce||0, r:def.aoe?7:5, life:((def.range||400)*G.stats.rangeMul)/def.speed,
+        key:w.key, aoe:(def.aoe||0)*G.stats.areaMul, knock:def.knock||60, crit:rollCrit(),
         boom:!!def.boomerang, phase:0, spin:rand(0,TAU), hitSet:{} });
     }
   });
@@ -316,7 +343,8 @@ function explode(b){
 
 /* ---------------- enemies ---------------- */
 function hitEnemy(e, dmg, ang, knock, crit){
-  let mult = G.stats.dmg*(crit?2:1);
+  let mult = G.stats.dmg*(crit?G.stats.critMul:1);
+  if(G.stats.rage && G.hp<=G.stats.maxHP*0.5) mult*=1+G.stats.rage;
   let blocked=false;
   if(e.def.frontDR){
     const fe=Math.atan2(G.player.y-e.y, G.player.x-e.x);
@@ -391,7 +419,8 @@ function updateEnemies(dt){
     e.kx*=Math.pow(0.002,dt); e.ky*=Math.pow(0.002,dt);
     const a=Math.atan2(P.y-e.y,P.x-e.x), d=Math.hypot(P.x-e.x,P.y-e.y);
     const mudF = inMud(e.x,e.y)?0.55:1;
-    const sp = e.spd*mudF;
+    const auraF = (G.stats.auraSlow && d<190) ? 1-G.stats.auraSlow : 1;
+    const sp = e.spd*mudF*auraF;
     const ai=e.def.ai;
     if(ai==='chase'){
       e.x+=Math.cos(a)*sp*dt; e.y+=Math.sin(a)*sp*dt;
@@ -610,7 +639,7 @@ function updateYard(dt){
       spawnPart(GRILLPOS.x+rand(-8,8),GRILLPOS.y-32,-Math.PI/2+rand(-0.3,0.3),rand(14,30),rand(0.8,1.3),'smoke',rand(5,9));
     }
     if(G.grillT<=0){
-      G.burgerOut=true; G.grillT=26;
+      G.burgerOut=true; G.grillT=26*G.stats.grillMul;
       G.pickups.push({ x:BURGER_SPOT.x, y:BURGER_SPOT.y, vx:0, vy:0, mag:false, t:0, kind:'burger', val:15, grill:true });
       toast('🍔 Burgers are ready at the grill');
       sfx.sizzle();
@@ -705,9 +734,10 @@ function updatePickups(dt){
         G.pickups.splice(i,1);
         if(p.kind==='bolt'){ G.mats++; G.totalMats++; sfx.pickup(); }
         else if(p.kind==='burger'){
-          G.hp=Math.min(G.stats.maxHP, G.hp+p.val);
+          const heal=Math.round(p.val*G.stats.burgerMul);
+          G.hp=Math.min(G.stats.maxHP, G.hp+heal);
           if(p.grill) G.burgerOut=false;
-          floatText(P.x,P.y-44,'+'+p.val+' 🍔','#9be06f',true);
+          floatText(P.x,P.y-44,'+'+heal+' 🍔','#9be06f',true);
           sfx.munch();
         }
         else if(p.kind==='crate'){
@@ -822,7 +852,7 @@ function tierRoll(){
 }
 function priceOf(kind,key,tier){
   const base = kind==='w'? WEAPONS[key].price : ITEMS[key].price;
-  return Math.round(base * TIER[tier].priceMul * (1+0.09*(G.wave-1)));
+  return Math.max(1, Math.round(base * TIER[tier].priceMul * (1+0.09*(G.wave-1)) * G.stats.priceMul));
 }
 function rollOffers(){
   const offers=[];
@@ -840,7 +870,7 @@ function rollOffers(){
   G.shop.offers=offers;
 }
 function openShop(){ G.mode='shop'; G.shop.rerolls=0; rollOffers(); renderShop(); show('shop'); }
-function rerollCost(){ return G.wave + G.shop.rerolls*2; }
+function rerollCost(){ return Math.max(1, Math.round((G.wave + G.shop.rerolls*2)*G.stats.rerollMul)); }
 function rerollShop(){
   const c=rerollCost();
   if(G.mats<c) return;

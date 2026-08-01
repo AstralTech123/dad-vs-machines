@@ -88,7 +88,8 @@ function renderChampDetail(){
   document.getElementById('champdetail').innerHTML=
     `<div class="cblurb">${c.blurb}</div>`+
     `<div class="cstats">${parts.length?parts.join(' · '):'Standard issue neighbor stats'}</div>`+
-    `<div class="cweap">Starts with: ${WEAPONS[c.weapon].name}</div>`;
+    `<div class="cweap">Starts with: ${WEAPONS[c.weapon].name}</div>`+
+    `<div class="cperk">${c.perkDesc}</div>`;
 }
 document.getElementById('startbtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('menu'); buildChampSelect(); show('champsel'); });
 document.getElementById('champstart').addEventListener('click',()=>{ sfx.click(); hide('champsel'); newGame(); applyChamp(selChamp); startWave(1); });
