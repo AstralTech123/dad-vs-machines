@@ -80,7 +80,7 @@ function showWin(){
 /* ---------------- shared stat sheet + guide ---------------- */
 function statsHTML(){
   const st=G.stats;
-  return `<h3>${(CHAMPS[G.champ]||CHAMPS.dad).name.toUpperCase()} · LEVEL ${G.level||1}</h3>
+  return `<h3>${(CHAMPS[G.champ]||CHAMPS.dad).name.toUpperCase()} · LEVEL ${G.level||1} · ${DF().name}</h3>
     Max HP <span class="sv">${st.maxHP}</span> · Regen <span class="sv">${st.regen}/4s</span> ·
     Damage <span class="sv">${Math.round(st.dmg*100)}%</span> · Atk Speed <span class="sv">${Math.round(st.atk*100)}%</span><br>
     Move <span class="sv">${Math.round(st.move)}</span> · Armor <span class="sv">${st.armor}</span> ·
@@ -137,7 +137,7 @@ function buildGuide(){
     <table>${champRows}</table>`;
 }
 document.getElementById('resumebtn').addEventListener('click',()=>{ sfx.click(); togglePause(); });
-document.getElementById('restartbtn').addEventListener('click',()=>{ sfx.click(); hide('pause'); newGame(); applyChamp(selChamp); startWave(1); });
+document.getElementById('restartbtn').addEventListener('click',()=>{ sfx.click(); hide('pause'); beginRun(); });
 document.getElementById('quitbtn').addEventListener('click',()=>{ sfx.click(); hide('pause'); newGame(); show('menu'); });
 document.getElementById('pguidebtn').addEventListener('click',()=>{ sfx.click(); buildGuide(); show('guide'); });
 document.getElementById('mguidebtn').addEventListener('click',()=>{ initAudio(); sfx.click(); buildGuide(); show('guide'); });
@@ -146,7 +146,21 @@ document.getElementById('deadmenubtn').addEventListener('click',()=>{ sfx.click(
 document.getElementById('winmenubtn').addEventListener('click',()=>{ sfx.click(); hide('win'); newGame(); show('menu'); });
 
 /* ---------------- champion select ---------------- */
-let selChamp='dad';
+let selChamp='dad', selDiff=2;
+function buildDiffRow(){
+  const row=document.getElementById('diffrow');
+  row.innerHTML='';
+  for(const k in DIFFS){
+    const el=document.createElement('div');
+    el.className='diffchip d'+k+(Number(k)===selDiff?' sel':'');
+    el.textContent=DIFFS[k].name;
+    el.addEventListener('click',()=>{ if(selDiff!==Number(k)){ selDiff=Number(k); sfx.click(); buildDiffRow(); } });
+    row.appendChild(el);
+  }
+  const d=document.createElement('div');
+  d.id='diffdesc'; d.textContent=DIFFS[selDiff].desc;
+  row.appendChild(d);
+}
 const CHAMP_IMGS={};
 /* portrait rendered by the exact same drawBody used in the yard, so the
    card always matches the in-game character */
@@ -171,6 +185,7 @@ function buildChampSelect(){
     el.addEventListener('click',()=>{ if(selChamp!==key){ selChamp=key; sfx.click(); buildChampSelect(); } });
     grid.appendChild(el);
   }
+  buildDiffRow();
   renderChampDetail();
 }
 function renderChampDetail(){
@@ -191,9 +206,10 @@ function renderChampDetail(){
     `<div class="cperk">${c.perkDesc}</div>`;
 }
 document.getElementById('startbtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('menu'); buildChampSelect(); show('champsel'); });
-document.getElementById('champstart').addEventListener('click',()=>{ sfx.click(); hide('champsel'); newGame(); applyChamp(selChamp); startWave(1); });
-document.getElementById('retrybtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('dead'); newGame(); applyChamp(selChamp); startWave(1); });
-document.getElementById('winbtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('win'); newGame(); applyChamp(selChamp); startWave(1); });
+function beginRun(){ newGame(); G.diff=selDiff; applyChamp(selChamp); startWave(1); }
+document.getElementById('champstart').addEventListener('click',()=>{ sfx.click(); hide('champsel'); beginRun(); });
+document.getElementById('retrybtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('dead'); beginRun(); });
+document.getElementById('winbtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('win'); beginRun(); });
 
 /* ---------------- canvas + glow sprites ---------------- */
 const cv=document.getElementById('game'), ctx=cv.getContext('2d');

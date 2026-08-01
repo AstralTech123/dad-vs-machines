@@ -91,12 +91,13 @@ function addWarn(x,y,t,kind,ekind){ G.warns.push({x,y,t,max:t,kind:kind||'e',def
 function scheduleSpawn(defKey,x,y){ G.warns.push({x,y,t:0.7,max:0.7,kind:'e',def:defKey,ekind:null}); }
 function spawnEnemy(defKey,x,y,child){
   const d=EDEFS[defKey], w=G.wave;
-  const e={ def:d, key:defKey, x, y, hp:d.hp*hpMul(w), maxhp:d.hp*hpMul(w),
+  const dhp=d.hp*hpMul(w)*DF().hp;
+  const e={ def:d, key:defKey, x, y, hp:dhp, maxhp:dhp,
     spd:d.spd*spdMul(w)*rand(0.92,1.08), flash:0, kx:0, ky:0, contactCd:0,
     seed:rand(0,TAU), state:0, stateT:rand(0,1.5), windT:0, child:!!child, wobble:rand(0,9),
     trampCd:0 };
-  if(defKey==='boss'){ e.hp=e.maxhp=d.hp; G.boss=e; e.burstT=2.0; e.addT=5; e.spiral=0; e.volT=2.0; }
-  if(defKey==='algo'){ e.hp=e.maxhp=d.hp; G.boss=e; e.spiral=rand(0,TAU); e.fireT=0.4; e.dashCd2=5;
+  if(defKey==='boss'){ e.hp=e.maxhp=Math.round(d.hp*DF().hp); G.boss=e; e.burstT=2.0; e.addT=5; e.spiral=0; e.volT=2.0; }
+  if(defKey==='algo'){ e.hp=e.maxhp=Math.round(d.hp*DF().hp); G.boss=e; e.spiral=rand(0,TAU); e.fireT=0.4; e.dashCd2=5;
     e.tele=0; e.dashLeft=0; e.dashA=0; e.nextAdd=0.75; }
   if(defKey==='mother'){ e.spawnT=3; }
   if(defKey==='printer'){ e.stateT=rand(1,2); }
@@ -125,7 +126,7 @@ function updateSpawning(dt){
   if(G.sub!=='play') return;
   const w=G.wave;
   const ramp = 0.5 + 1.0*(1 - G.waveTime/WAVE_DUR[w]);
-  G.spawnBudget += dt * (1.0 + 0.7*w) * ramp;
+  G.spawnBudget += dt * (1.0 + 0.7*w) * ramp * DF().rate;
   const cap = Math.min(110, 30 + 9*w);
   if(G.enemies.length >= cap) return;
   const avail = Object.keys(EDEFS).filter(k=> EDEFS[k].weight>0 && EDEFS[k].minW<=w);
@@ -212,6 +213,7 @@ function updatePlayer(dt){
    consumes the attacker's swing) so callers can pace their cooldowns */
 function damagePlayer(raw){
   const P=G.player;
+  raw*=DF().dmg;
   if(P.dead||P.iframe>0||P.mowT>0) return false;
   if(G.stats.dodge>0 && Math.random()<G.stats.dodge){
     floatText(P.x,P.y-46,'DODGE','#8fd0ea'); return true;
@@ -403,14 +405,14 @@ function killEnemy(e){
   if(e.def.r>24) for(let k=0;k<4;k++) spawnPart(e.x,e.y, rand(0,TAU), rand(15,50), rand(0.7,1.1), 'smoke', rand(9,16));
   if(e.def.splits && !e.child){ for(let s=0;s<e.def.splits;s++) spawnEnemy('swarm', e.x+rand(-14,14), e.y+rand(-14,14), true); }
   if(e.def.elite){
-    const loot=Math.round((12+3*G.wave)*(1+G.stats.luck));
+    const loot=Math.round((12+3*G.wave)*(1+G.stats.luck)*DF().loot);
     for(let m=0;m<loot;m++) G.pickups.push({ x:e.x+rand(-16,16), y:e.y+rand(-16,16),
       vx:rand(-120,120), vy:rand(-140,-20), mag:false, t:0, kind:'bolt', val:1 });
     G.pickups.push({ x:e.x, y:e.y, vx:rand(-40,40), vy:-60, mag:false, t:0, kind:'burger', val:15 });
     banner('ELITE SCRAPPED','+'+loot+' BOLTS AND A BURGER');
     G.cam.shake=18;
   } else {
-    const mats = e.child?0:e.def.mats;
+    const mats = e.child?0:Math.round(e.def.mats*DF().loot);
     for(let m=0;m<mats;m++) G.pickups.push({ x:e.x+rand(-10,10), y:e.y+rand(-10,10),
       vx:rand(-70,70), vy:rand(-90,-20), mag:false, t:0, kind:'bolt', val:1 });
   }
@@ -736,7 +738,7 @@ function updateWarns(dt){
       if(w.kind==='bossw') spawnEnemy(w.ekind, w.x, w.y);
       else if(w.kind==='elite') spawnEliteAt(w.ekind, w.x, w.y);
       else if(w.kind==='drop'){
-        G.pickups.push({ x:w.x, y:w.y, vx:0, vy:0, mag:false, t:0, kind:'crate', val:Math.round((8+2*G.wave)*(1+G.stats.luck)) });
+        G.pickups.push({ x:w.x, y:w.y, vx:0, vy:0, mag:false, t:0, kind:'crate', val:Math.round((8+2*G.wave)*(1+G.stats.luck)*DF().loot) });
         G.cam.shake=Math.min(10,G.cam.shake+4);
         noiseHit(0.12,0.12,900);
       }

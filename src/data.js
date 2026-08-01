@@ -176,6 +176,17 @@ const CHAMPS = {
             perkDesc:'Oorah: below half HP he deals +25% damage.' },
 };
 
+/* ---------------- difficulty ----------------
+   hp/dmg scale the machines, rate scales spawn pressure, loot scales bolts */
+const DIFFS = {
+  1:{ name:'LAZY SUNDAY',     desc:'The machines are half asleep. A gentle mow.', hp:0.75, dmg:0.7,  rate:0.8,  loot:0.85 },
+  2:{ name:'WEEKDAY',         desc:'The standard shift.',                          hp:1,    dmg:1,    rate:1,    loot:1 },
+  3:{ name:'WEEKEND WARRIOR', desc:'They brought friends.',                        hp:1.3,  dmg:1.2,  rate:1.2,  loot:1.15 },
+  4:{ name:'HOA AUDIT',       desc:'Everything is out to get you. Even the lawn.', hp:1.7,  dmg:1.45, rate:1.45, loot:1.35 },
+  5:{ name:'ROBOT UPRISING',  desc:'The singularity arrived and it is furious.',   hp:2.2,  dmg:1.8,  rate:1.7,  loot:1.6 },
+};
+const DF=()=>DIFFS[G.diff||2];
+
 /* ---------------- leveling ---------------- */
 function xpNeed(l){ return 10 + (l-1)*8; }
 const LEVEL_UPS = [

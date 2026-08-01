@@ -132,6 +132,16 @@
   .champcard .cprole.tank { color:#6aa8f0; } .champcard .cprole.melee { color:#ff9a66; }
   .champcard .cprole.ranged { color:#9be06f; } .champcard .cprole.caster { color:#c48df0; }
   .champcard .cprole.support { color:#ffd166; }
+  #diffrow { display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin:12px auto 0;
+             width:min(760px,94vw); pointer-events:auto; }
+  .diffchip { font-size:11px; letter-spacing:1.5px; font-weight:bold; padding:7px 12px; cursor:pointer;
+              border-radius:9px; background:#191d17; border:2px solid #333a30; color:#8b93a3;
+              transition:border-color .08s; }
+  .diffchip:hover { border-color:#5a6152; }
+  .diffchip.sel { color:#f4eeda; border-color:#ffd166; box-shadow:0 0 12px rgba(255,209,102,.2); }
+  .diffchip.d4.sel { border-color:#ff9a4d; box-shadow:0 0 12px rgba(255,154,77,.25); }
+  .diffchip.d5.sel { border-color:#ff5a5f; box-shadow:0 0 12px rgba(255,90,95,.3); }
+  #diffdesc { width:100%; text-align:center; font-size:11.5px; color:#a39c8a; margin-top:2px; }
   #champdetail { margin:12px auto 0; width:min(620px,92vw); min-height:74px; pointer-events:auto; }
   #champdetail .cblurb { font-size:14px; color:#d6d0c0; font-style:italic; }
   #champdetail .cstats { margin-top:6px; font-size:13px; color:#9be06f; }
@@ -243,6 +253,7 @@
   <h2 class="cstitle">CHOOSE YOUR NEIGHBOR</h2>
   <div class="cssub">SOMEBODY HAS TO DEAL WITH THIS</div>
   <div id="champgrid"></div>
+  <div id="diffrow"></div>
   <div id="champdetail"></div>
   <button class="bigbtn" id="champstart">START THE SHIFT</button>
 </div>
