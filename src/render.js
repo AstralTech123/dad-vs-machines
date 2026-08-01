@@ -816,7 +816,11 @@ function drawCanopies(){
   ctx.fillStyle='#9c8870'; ctx.fillRect(2114,112,312,12);
   for(const t of TREES){
     ctx.save(); ctx.translate(t.x+Math.sin(AT*0.5)*4, t.y-26);
-    ctx.globalAlpha=0.96;
+    // fade the canopy when the player walks under it so he stays visible
+    let ca=0.96;
+    const P=G&&G.player;
+    if(P){ const d=Math.hypot(P.x-t.x, P.y-(t.y-26)); ca=lerp(0.42,0.96,clamp((d-70)/60,0,1)); }
+    ctx.globalAlpha=ca;
     ctx.fillStyle='#24421f';
     for(const [ox,oy,rr] of [[0,0,74],[-52,18,48],[54,14,50],[-20,-38,44],[30,-34,40]]){
       ctx.beginPath(); ctx.arc(ox,oy,rr,0,TAU); ctx.fill();
