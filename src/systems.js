@@ -68,7 +68,7 @@ function startWave(n){
     G.favorNext=null;
   }
   // chore contract on non-boss waves from wave 2 on
-  G.contract = (n>=2 && !BOSS_WAVES[n]) ? { def:pick(CONTRACTS), prog:0, dmg:false } : null;
+  G.contract = (n>=2 && !bossFor(n)) ? { def:pick(CONTRACTS), prog:0, dmg:false } : null;
   if(G.contract){
     const ctxt='🧹 Optional chore: '+G.contract.def.txt+' (pays bolts and XP)';
     setTimeout(()=>{ if(G.contract) toast(ctxt); }, G.favorApplied?2600:800);
@@ -103,10 +103,16 @@ function applyChamp(key){
   updateHUD(); renderSlots();
 }
 function flavor(n){
-  return ['','They said it was just autocomplete.','The pop-ups are walking now.',
+  const F=['','They said it was just autocomplete.','The pop-ups are walking now.',
     'Same-day delivery. Of explosions.','It is aiming at you specifically.','Survive the clock. Then meet The Algorithm.',
     'Someone gave it legs.','It brought a shield to a yard fight.','It read your emails.',
-    'It knows about the 401k.','Overtime starts when the clock hits zero.'][n]||'';
+    'It knows about the 401k.','The invoice is coming due.',
+    'It unionized. Against you.','It learned to parallel park.','It is in your walls. Literally.',
+    'The firmware update made it angrier.','Forecast: cloudy with a chance of doom.',
+    'It subscribed you to everything.','It found the good scissors.','It speaks HOA now.',
+    'One more quarter of growth.','The final performance review.'];
+  if(n<F.length) return F[n];
+  return pick(['They keep coming.','Still coming.','The machines remember.','No more warranty.','This is the overtime of overtime.']);
 }
 function addWarn(x,y,t,kind,ekind){ G.warns.push({x,y,t,max:t,kind:kind||'e',def:null,ekind:ekind||null}); }
 function scheduleSpawn(defKey,x,y){ G.warns.push({x,y,t:0.7,max:0.7,kind:'e',def:defKey,ekind:null}); }
@@ -117,8 +123,15 @@ function spawnEnemy(defKey,x,y,child){
     spd:d.spd*spdMul(w)*rand(0.92,1.08), flash:0, kx:0, ky:0, contactCd:0,
     seed:rand(0,TAU), state:0, stateT:rand(0,1.5), windT:0, child:!!child, wobble:rand(0,9),
     trampCd:0 };
-  if(defKey==='boss'){ e.hp=e.maxhp=Math.round(d.hp*DF().hp); G.boss=e; e.burstT=2.0; e.addT=5; e.spiral=0; e.volT=2.0; }
-  if(defKey==='algo'){ e.hp=e.maxhp=Math.round(d.hp*DF().hp); G.boss=e; e.spiral=rand(0,TAU); e.fireT=0.4; e.dashCd2=5;
+  if(d.boss){
+    const endlessMul = G.wave>FINAL_WAVE ? hpMul(G.wave)/hpMul(FINAL_WAVE) : 1;
+    e.hp=e.maxhp=Math.round(d.hp*DF().hp*endlessMul);
+    G.boss=e;
+  }
+  if(defKey==='boss'){ e.burstT=2.0; e.addT=5; e.spiral=0; e.volT=2.0; }
+  if(defKey==='subs'){ e.billT=3.5; e.burstT=6; e.spiral=0; }
+  if(defKey==='cloud'){ e.spiral=rand(0,TAU); e.fireT=0.4; e.addT=6; e.orbDir=Math.random()<0.5?1:-1; }
+  if(defKey==='algo'){ e.spiral=rand(0,TAU); e.fireT=0.4; e.dashCd2=5;
     e.tele=0; e.dashLeft=0; e.dashA=0; e.nextAdd=0.75; }
   if(defKey==='mother'){ e.spawnT=3; }
   if(defKey==='printer'){ e.stateT=rand(1,2); }
@@ -586,11 +599,15 @@ function updateEnemies(dt){
       }
     } else if(ai==='algo'){
       updateAlgo(e,dt,a,d);
+    } else if(ai==='subs'){
+      updateSubs(e,dt,a,d);
+    } else if(ai==='cloud'){
+      updateCloud(e,dt,a,d);
     } else if(ai==='boss'){
       updateBoss(e,dt,a,d);
     }
     e.x=clamp(e.x,40,ARENA_W-40); e.y=clamp(e.y,40,ARENA_H-40);
-    if(e.key!=='boss' && e.key!=='algo'){
+    if(!e.def.boss){
       [e.x,e.y]=resolveObst(e.x,e.y,e.def.r*0.8);
       const td=Math.hypot(e.x-TRAMP.x,e.y-TRAMP.y);
       if(td<TRAMP.r && e.trampCd<=0){
@@ -649,6 +666,51 @@ function updateAlgo(e,dt,a,d){
       const aa=rand(0,TAU);
       scheduleSpawn('chat', clamp(e.x+Math.cos(aa)*160,60,ARENA_W-60), clamp(e.y+Math.sin(aa)*160,60,ARENA_H-60));
     }
+  }
+  const f=document.getElementById('bossfill');
+  if(f) f.style.width=(clamp(e.hp/e.maxhp,0,1)*100)+'%';
+}
+function updateSubs(e,dt,a,d){
+  // THE SUBSCRIPTION: lumbers at you, mails exploding invoices, cancels nothing
+  e.x+=Math.cos(a)*e.spd*dt; e.y+=Math.sin(a)*e.spd*dt;
+  e.billT-=dt; e.burstT-=dt;
+  if(e.billT<=0 && G.enemies.length<40){
+    e.billT = e.hp<e.maxhp*0.5 ? 2.6 : 3.8;
+    for(let s=0;s<2;s++) spawnEnemy('drone', e.x+rand(-30,30), e.y+rand(-30,30), true);
+    floatText(e.x,e.y-e.def.r-14,'YOU HAVE BEEN BILLED','#ffd166');
+    tone(620,0.12,'square',0.07,320);
+    spawnPart(e.x,e.y,0,0,0.15,'flash',e.def.r*1.2);
+  }
+  if(e.burstT<=0){
+    e.burstT=6.5; e.spiral+=0.7;
+    for(let i=0;i<10;i++){
+      const aa=e.spiral + i/10*TAU;
+      G.ebullets.push({ x:e.x, y:e.y, vx:Math.cos(aa)*175, vy:Math.sin(aa)*175,
+        dmg:9*dmgMul(G.wave), r:6, life:4.5, paper:true });
+    }
+    tone(180,0.25,'sawtooth',0.1,80); G.cam.shake=Math.min(12,G.cam.shake+4);
+  }
+  const f=document.getElementById('bossfill');
+  if(f) f.style.width=(clamp(e.hp/e.maxhp,0,1)*100)+'%';
+}
+function updateCloud(e,dt,a,d){
+  // THE CLOUD: keeps its distance, rains data, spins up swarm instances
+  const want=380;
+  if(d>want+60){ e.x+=Math.cos(a)*e.spd*dt; e.y+=Math.sin(a)*e.spd*dt; }
+  else if(d<want-60){ e.x-=Math.cos(a)*e.spd*0.8*dt; e.y-=Math.sin(a)*e.spd*0.8*dt; }
+  else { e.x+=Math.cos(a+Math.PI/2*e.orbDir)*e.spd*0.7*dt; e.y+=Math.sin(a+Math.PI/2*e.orbDir)*e.spd*0.7*dt; }
+  e.fireT-=dt; e.addT-=dt;
+  const enr=e.hp<e.maxhp*0.4;
+  if(e.fireT<=0){
+    e.fireT=enr?0.11:0.17; e.spiral+=enr?0.45:0.6;
+    G.ebullets.push({ x:e.x, y:e.y, vx:Math.cos(e.spiral)*190, vy:Math.sin(e.spiral)*190,
+      dmg:e.def.shot*dmgMul(G.wave), r:6, life:5 });
+  }
+  if(e.addT<=0 && G.enemies.length<40){
+    e.addT=6;
+    for(let s=0;s<3;s++) spawnEnemy('swarm', e.x+rand(-26,26), e.y+rand(-26,26), true);
+    floatText(e.x,e.y-e.def.r-14,'SPINNING UP INSTANCES','#8fd8ff');
+    spawnPart(e.x,e.y,0,0,0.15,'flash',e.def.r*1.2);
   }
   const f=document.getElementById('bossfill');
   if(f) f.style.width=(clamp(e.hp/e.maxhp,0,1)*100)+'%';
@@ -762,7 +824,7 @@ function updateYard(dt){
       SPRINK.a+rand(-0.25,0.25), rand(20,60), 0.35, MAPKEY==='office'?'#e8e4da':'#7fc7e8', 2);
   }
   for(const e of G.enemies){
-    if(e.key==='boss'||e.key==='algo') continue;
+    if(e.def.boss) continue;
     const ed=Math.hypot(e.x-SPRINK.x,e.y-SPRINK.y);
     if(ed<180 && ed>20){
       const ea=Math.atan2(e.y-SPRINK.y,e.x-SPRINK.x);
@@ -890,24 +952,30 @@ function updateWaveFlow(dt){
     if(G.eliteQ.length && G.waveTime < G.eliteQ[0]){ G.eliteQ.shift(); queueElite(); }
     if(G.waveTime<=0){
       G.waveTime=0;
-      if(BOSS_WAVES[G.wave]) startBossPhase(BOSS_WAVES[G.wave]);
+      const bk=bossFor(G.wave);
+      if(bk) startBossPhase(bk);
       else endWaveCleanup();
     }
   } else if(G.sub==='vacuum'){
     G.subT+=dt;
     if(G.pickups.length===0 && G.subT>0.9){
-      if(G.wave===FINAL_WAVE){ showWin(); G.sub='done'; }
+      if(G.wave>=FINAL_WAVE && !G.endless){ showWin(); G.sub='done'; }
       else { G.mode='shop'; G.sub='shopping'; if(G.pendingLvls>0) showLevelUp(); else openShop(); }
     }
   }
 }
+const BOSS_LABELS={
+  algo:{ label:'T H E   A L G O R I T H M', warn:'⚠ THE ALGORITHM HAS FINISHED BUFFERING ⚠' },
+  subs:{ label:'T H E   S U B S C R I P T I O N', warn:'⚠ YOUR FREE TRIAL HAS ENDED ⚠' },
+  cloud:{ label:'T H E   C L O U D', warn:'⚠ 100% CHANCE OF THE CLOUD ⚠' },
+  boss:{ label:'A G I – P R I M E', warn:'⚠ AGI-PRIME IS ONLINE ⚠' },
+};
 function startBossPhase(kind){
   G.sub='boss';
-  const label=document.getElementById('bosslabel');
-  label.textContent = kind==='algo' ? 'T H E   A L G O R I T H M' : 'A G I – P R I M E';
+  document.getElementById('bosslabel').textContent = BOSS_LABELS[kind].label;
   document.getElementById('bosswrap').style.display='block';
   document.getElementById('bossfill').style.width='100%';
-  banner('OVERTIME', kind==='algo' ? '⚠ THE ALGORITHM HAS FINISHED BUFFERING ⚠' : '⚠ AGI-PRIME IS ONLINE ⚠');
+  banner('OVERTIME', BOSS_LABELS[kind].warn);
   sfx.bossroar();
   const P=G.player;
   const a=Math.atan2(ARENA_H/2-P.y, ARENA_W/2-P.x);
@@ -954,7 +1022,7 @@ function onBossDown(){
   G.warns=G.warns.filter(w=>w.kind==='drop');
   G.sub='vacuum'; G.subT=0;
   for(const p of G.pickups) p.mag=true;
-  if(G.wave===FINAL_WAVE){ banner('SYSTEM SHUTDOWN',''); }
+  if(G.wave>=FINAL_WAVE && !G.endless){ banner('SYSTEM SHUTDOWN',''); }
   else {
     const bonus=10+G.wave; G.mats+=bonus; G.totalMats+=bonus;
     banner('BOSS SCRAPPED','+'+bonus+' BOLT BONUS');

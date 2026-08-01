@@ -199,6 +199,12 @@ document.getElementById('mguidebtn').addEventListener('click',()=>{ initAudio();
 document.getElementById('guideclose').addEventListener('click',()=>{ sfx.click(); hide('guide'); });
 document.getElementById('deadmenubtn').addEventListener('click',()=>{ sfx.click(); hide('dead'); newGame(); show('menu'); });
 document.getElementById('winmenubtn').addEventListener('click',()=>{ sfx.click(); hide('win'); newGame(); show('menu'); });
+document.getElementById('endlessbtn').addEventListener('click',()=>{
+  initAudio(); sfx.click(); hide('win');
+  G.endless=true;
+  banner('ENDLESS SHIFT','THE MACHINES DO NOT CLOCK OUT');
+  startWave(G.wave+1);
+});
 document.getElementById('musicbtn').addEventListener('click',function(){
   toggleMusic(); sfx.click(); this.textContent='MUSIC: '+(musicOn?'ON':'OFF');
 });
@@ -1040,6 +1046,35 @@ function drawEnemy(e){
     drawGlow('red',-r*0.25,-r*0.1,9,0.6); drawGlow('red',r*0.25,-r*0.1,9,0.6);
     ctx.fillStyle='#ff5a5f';
     ctx.beginPath(); ctx.arc(-r*0.25,-r*0.1,3.5,0,TAU); ctx.arc(r*0.25,-r*0.1,3.5,0,TAU); ctx.fill();
+  } else if(e.key==='subs'){
+    ctx.translate(0,bob*0.5);
+    drawGlow('gold',0,0,r*1.7,0.3);
+    ctx.fillStyle='#d8d3c5'; roundedRectPath(ctx,-r,-r*0.72,r*2,r*1.44,8); ctx.fill();
+    ctx.strokeStyle='#8f8a7c'; ctx.lineWidth=3; roundedRectPath(ctx,-r,-r*0.72,r*2,r*1.44,8); ctx.stroke();
+    ctx.strokeStyle='#a8a294'; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.moveTo(-r+4,-r*0.66); ctx.lineTo(0,r*0.1); ctx.lineTo(r-4,-r*0.66); ctx.stroke();
+    ctx.save(); ctx.rotate(-0.18);
+    ctx.strokeStyle='#c22e35'; ctx.lineWidth=3; ctx.strokeRect(-r*0.62,r*0.05,r*1.24,r*0.42);
+    ctx.fillStyle='#c22e35'; ctx.font='bold '+Math.round(r*0.3)+'px monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('PAST DUE',0,r*0.27);
+    ctx.restore();
+    drawGlow('red',-r*0.42,-r*0.35,10,0.6); drawGlow('red',r*0.42,-r*0.35,10,0.6);
+    ctx.fillStyle='#ff5a5f'; ctx.fillRect(-r*0.52,-r*0.42,r*0.24,r*0.14); ctx.fillRect(r*0.28,-r*0.42,r*0.24,r*0.14);
+  } else if(e.key==='cloud'){
+    ctx.translate(0,bob);
+    drawGlow('blue',0,0,r*1.8,0.3);
+    ctx.fillStyle='#3a4450';
+    for(const [ox,oy,rr] of [[0,0,r*0.75],[-r*0.7,r*0.15,r*0.5],[r*0.7,r*0.12,r*0.52],[-r*0.3,-r*0.42,r*0.5],[r*0.35,-r*0.38,r*0.45]]){
+      ctx.beginPath(); ctx.arc(ox,oy,rr,0,TAU); ctx.fill();
+    }
+    ctx.fillStyle='#2b333d'; ctx.beginPath(); ctx.arc(-r*0.2,r*0.3,r*0.5,0,TAU); ctx.fill();
+    ctx.fillStyle='#ffd166';
+    ctx.beginPath(); ctx.moveTo(-4,r*0.5); ctx.lineTo(8,r*0.5); ctx.lineTo(0,r*0.9); ctx.lineTo(10,r*0.9);
+    ctx.lineTo(-8,r*1.4); ctx.lineTo(-2,r*1.0); ctx.lineTo(-10,r*1.0); ctx.closePath(); ctx.fill();
+    drawGlow('purple',0,-r*0.1,14,0.7);
+    ctx.fillStyle='#c48df0'; ctx.beginPath(); ctx.arc(0,-r*0.1,8,0,TAU); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,-r*0.1,3.4,0,TAU); ctx.fill();
   } else if(e.key==='algo'){
     drawGlow('purple',0,0,r*1.5,0.4);
     ctx.fillStyle='#1c1826'; ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.fill();
@@ -1284,7 +1319,7 @@ function drawArrows(cam,Z){
   const targets=[];
   for(const e of G.enemies){
     if(e.def.elite) targets.push({x:e.x,y:e.y,c:'#ffd166'});
-    if(e.key==='boss'||e.key==='algo') targets.push({x:e.x,y:e.y,c:'#ff5a5f'});
+    if(e.def.boss) targets.push({x:e.x,y:e.y,c:'#ff5a5f'});
   }
   for(const p of G.pickups){
     if(p.kind==='crate') targets.push({x:p.x,y:p.y,c:'#e0a34d'});

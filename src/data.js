@@ -122,14 +122,23 @@ const EDEFS = {
   groomba:{ name:'GOLDEN ROOMBA', hp:105, spd:92, dmg:8, r:20, cost:0, minW:99, mats:0, weight:0, ai:'gcharge', knockR:0.3, elite:true },
   printer:{ name:'PRINTER OF DOOM', hp:140, spd:46, dmg:0, shot:7, r:22, cost:0, minW:99, mats:0, weight:0, ai:'printer', knockR:0.3, elite:true },
   mother:{ name:'MOTHER DRONE', hp:175, spd:66, dmg:6, r:26, cost:0, minW:99, mats:0, weight:0, ai:'mother', knockR:0.3, elite:true },
-  algo:{ name:'THE ALGORITHM', hp:1050, spd:42, dmg:12, r:40, cost:0, minW:99, mats:0, weight:0, ai:'algo', knockR:0 },
-  boss:{ name:'AGI-PRIME', hp:2400, spd:46, dmg:15, r:56, cost:0, minW:99, mats:0, weight:0, ai:'boss', knockR:0 },
+  algo:{ name:'THE ALGORITHM', hp:1050, spd:42, dmg:12, r:40, cost:0, minW:99, mats:0, weight:0, ai:'algo', knockR:0, boss:true },
+  subs:{ name:'THE SUBSCRIPTION', hp:1650, spd:40, dmg:13, r:46, cost:0, minW:99, mats:0, weight:0, ai:'subs', knockR:0, boss:true },
+  cloud:{ name:'THE CLOUD', hp:2000, spd:52, dmg:12, shot:9, r:48, cost:0, minW:99, mats:0, weight:0, ai:'cloud', knockR:0, boss:true },
+  boss:{ name:'AGI-PRIME', hp:2600, spd:46, dmg:15, r:56, cost:0, minW:99, mats:0, weight:0, ai:'boss', knockR:0, boss:true },
 };
-const WAVE_DUR = [0,30,35,40,45,50,55,60,65,70,70];
-const FINAL_WAVE = 10;
+const WAVE_DUR = [0,30,35,40,45,50,55,60,65,70,70,70,70,70,70,75,75,75,75,75,80];
+const FINAL_WAVE = 20;
 const MAX_SLOTS = 6;
 const ULT_NEED = 25;
-const BOSS_WAVES = {5:'algo', 10:'boss'};
+const BOSS_WAVES = {5:'algo', 10:'subs', 15:'cloud', 20:'boss'};
+/* boss lookup that keeps working in endless mode: every 5th wave past 20
+   brings a random boss back for another round */
+function bossFor(w){
+  if(BOSS_WAVES[w]) return BOSS_WAVES[w];
+  if(w>FINAL_WAVE && w%5===0) return ['algo','subs','cloud','boss'][Math.floor(rand(0,4))];
+  return null;
+}
 
 /* ---------------- maps ----------------
    both maps share the same obstacle geometry (proven balance); each gets its
