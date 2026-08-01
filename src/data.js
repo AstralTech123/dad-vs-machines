@@ -176,3 +176,30 @@ const CHAMPS = {
             perkDesc:'Oorah: below half HP he deals +25% damage.' },
 };
 
+/* per-champ palette for the vector character art; missing keys fall back to
+   the dad's default look. PNG sprites replace this whole system in Phase 2. */
+const LOOKS = {
+  dad:   { shirt:'#4f81b0', shirt2:'#3f6b94', shorts:'#c9b483', shorts2:'#b5a071',
+           hair:'#9a9a9a', top:'#efd9bd', must:'#7c7c7c', sock:'#c22e35' },
+  karen: { shirt:'#d66a9c', shirt2:'#b2527f', shorts:'#f0ece0', shorts2:'#d6d0c0',
+           hair:'#e8c95a', top:'#e8c95a', must:null },
+  coach: { shirt:'#c22e35', shirt2:'#9c2028', shorts:'#33383f', shorts2:'#23272e',
+           hair:'#5a4128', must:'#5a4128', sock:'#33383f' },
+  itdad: { shirt:'#2f3e4d', shirt2:'#232f3b', shorts:'#8b93a3', shorts2:'#6f7683',
+           hair:'#2a2a2a', must:'#2a2a2a' },
+  grill: { shirt:'#e8e4da', shirt2:'#c9c2a8', shorts:'#6b4f2a', shorts2:'#57401f',
+           sock:'#e0a34d' },
+  coupon:{ shirt:'#6fae5c', shirt2:'#578a48', shorts:'#4a5a8c', shorts2:'#3b4870',
+           hair:'#8c5a2e', top:'#8c5a2e', must:null },
+  yoga:  { shirt:'#b98ade', shirt2:'#9a6cc0', shorts:'#33383f', shorts2:'#23272e',
+           hair:'#3a2c1c', top:'#3a2c1c', must:null },
+  ned:   { shirt:'#e0a34d', shirt2:'#c28434', shorts:'#5f4d38', shorts2:'#4a3c2a',
+           hair:'#4a4a4a', must:'#4a4a4a' },
+  hank:  { shirt:'#a03c30', shirt2:'#7f2f26', shorts:'#4a5a8c', shorts2:'#3b4870',
+           hair:'#3a2c1c', must:'#3a2c1c' },
+  brenda:{ shirt:'#4da3a0', shirt2:'#3b807e', shorts:'#7a5c8a', shorts2:'#61476e',
+           hair:'#b04a3a', top:'#b04a3a', must:null },
+  gus:   { shirt:'#5b6e4f', shirt2:'#47573d', shorts:'#5b6e4f', shorts2:'#47573d',
+           hair:'#c9cdd4', top:'#c9cdd4', must:'#c9cdd4' },
+};
+
