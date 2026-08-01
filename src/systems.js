@@ -215,7 +215,9 @@ function damagePlayer(raw){
     floatText(P.x,P.y-46,'DODGE','#8fd0ea'); return;
   }
   const dmg=Math.max(1, Math.round(raw - G.stats.armor));
-  G.hp-=dmg; P.iframe=0.7; G.cam.shake=Math.min(18,G.cam.shake+7);
+  // brief 0.1s buffer only smooths same-frame spikes; each machine's own
+  // contactCd is what paces its hits, so crowds now deal full stacked damage
+  G.hp-=dmg; P.iframe=0.1; G.cam.shake=Math.min(18,G.cam.shake+7);
   floatText(P.x,P.y-46,'-'+dmg,'#ff5a5f'); sfx.hurt();
   if(G.stats.thorns){
     for(const e of [...G.enemies]){
