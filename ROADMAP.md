@@ -64,4 +64,5 @@ Brotato (shop, luck, builds), LoL Swarm mode (champ roles and ults), Bloons
 - Champion select with 11 neighbors, real portraits, per-champ outfits and perks
 - Pause menu, in-game How to Play guide, crowd damage fix
 - Garage sale, chore contracts, neighbor favors, yard investments
-- NEXT: 55+ item catalog with rarities and ability items, then difficulty tuning pass
+- 56-item catalog, balance pass, gamepad support, visual identity pass, Corporate Office map: SHIPPED
+- NEXT: playtest feedback round, then couch co-op lobby, then leaderboard
