@@ -38,8 +38,8 @@ function tryMow(){
 }
 
 /* ---------------- wave scaling + spawning ---------------- */
-function hpMul(w){ return 1 + 0.34*(w-1) + 0.03*(w-1)*(w-1); }
-function dmgMul(w){ return 1 + 0.13*(w-1); }
+function hpMul(w){ return 1 + 0.38*(w-1) + 0.035*(w-1)*(w-1); }
+function dmgMul(w){ return 1 + 0.15*(w-1); }
 function spdMul(w){ return 1 + 0.02*(w-1); }
 
 function startWave(n){
@@ -145,7 +145,7 @@ function updateSpawning(dt){
   if(G.sub!=='play') return;
   const w=G.wave;
   const ramp = 0.5 + 1.0*(1 - G.waveTime/WAVE_DUR[w]);
-  G.spawnBudget += dt * (1.0 + 0.7*w) * ramp * DF().rate;
+  G.spawnBudget += dt * (1.0 + 0.78*w) * ramp * DF().rate;
   const cap = Math.min(110, 30 + 9*w);
   if(G.enemies.length >= cap) return;
   const avail = Object.keys(EDEFS).filter(k=> EDEFS[k].weight>0 && EDEFS[k].minW<=w);

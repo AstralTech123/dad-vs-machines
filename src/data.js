@@ -119,11 +119,11 @@ const EDEFS = {
   split:{ name:'Splitter', hp:30, spd:76, dmg:6, r:17, cost:3.5, minW:6, mats:2, weight:5, ai:'chase', splits:3 },
   tank:{ name:'Server Rack', hp:100, spd:38, dmg:14, r:30, cost:6, minW:6, mats:5, weight:4, ai:'chase', knockR:0.12 },
   firewall:{ name:'Firewall', hp:60, spd:50, dmg:9, r:19, cost:4, minW:7, mats:3, weight:4, ai:'chase', frontDR:true, knockR:0.4 },
-  groomba:{ name:'GOLDEN ROOMBA', hp:90, spd:92, dmg:8, r:20, cost:0, minW:99, mats:0, weight:0, ai:'gcharge', knockR:0.3, elite:true },
-  printer:{ name:'PRINTER OF DOOM', hp:120, spd:46, dmg:0, shot:7, r:22, cost:0, minW:99, mats:0, weight:0, ai:'printer', knockR:0.3, elite:true },
-  mother:{ name:'MOTHER DRONE', hp:150, spd:66, dmg:6, r:26, cost:0, minW:99, mats:0, weight:0, ai:'mother', knockR:0.3, elite:true },
-  algo:{ name:'THE ALGORITHM', hp:900, spd:42, dmg:12, r:40, cost:0, minW:99, mats:0, weight:0, ai:'algo', knockR:0 },
-  boss:{ name:'AGI-PRIME', hp:2100, spd:46, dmg:15, r:56, cost:0, minW:99, mats:0, weight:0, ai:'boss', knockR:0 },
+  groomba:{ name:'GOLDEN ROOMBA', hp:105, spd:92, dmg:8, r:20, cost:0, minW:99, mats:0, weight:0, ai:'gcharge', knockR:0.3, elite:true },
+  printer:{ name:'PRINTER OF DOOM', hp:140, spd:46, dmg:0, shot:7, r:22, cost:0, minW:99, mats:0, weight:0, ai:'printer', knockR:0.3, elite:true },
+  mother:{ name:'MOTHER DRONE', hp:175, spd:66, dmg:6, r:26, cost:0, minW:99, mats:0, weight:0, ai:'mother', knockR:0.3, elite:true },
+  algo:{ name:'THE ALGORITHM', hp:1050, spd:42, dmg:12, r:40, cost:0, minW:99, mats:0, weight:0, ai:'algo', knockR:0 },
+  boss:{ name:'AGI-PRIME', hp:2400, spd:46, dmg:15, r:56, cost:0, minW:99, mats:0, weight:0, ai:'boss', knockR:0 },
 };
 const WAVE_DUR = [0,30,35,40,45,50,55,60,65,70,70];
 const FINAL_WAVE = 10;
