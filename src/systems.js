@@ -211,6 +211,9 @@ function updatePlayer(dt){
 function damagePlayer(raw){
   const P=G.player;
   if(P.dead||P.iframe>0||P.mowT>0) return;
+  if(G.stats.dodge>0 && Math.random()<G.stats.dodge){
+    floatText(P.x,P.y-46,'DODGE','#8fd0ea'); return;
+  }
   const dmg=Math.max(1, Math.round(raw - G.stats.armor));
   G.hp-=dmg; P.iframe=0.7; G.cam.shake=Math.min(18,G.cam.shake+7);
   floatText(P.x,P.y-46,'-'+dmg,'#ff5a5f'); sfx.hurt();
@@ -241,6 +244,9 @@ function nearestEnemy(x,y,range){
 }
 function lerp0(a,b,t){ return a + angDiff(a,b)*clamp(t,0,1); }
 function rollCrit(){ return Math.random()<G.stats.crit; }
+function clsMul(def){
+  return def.cls==='melee'?G.stats.meleeMul : def.cls==='blast'?G.stats.blastMul : G.stats.rangedMul;
+}
 function updateWeapons(dt){
   const P=G.player; if(P.dead) return;
   const n=G.weapons.length;
@@ -257,7 +263,7 @@ function updateWeapons(dt){
         if(e['_wk'+i]>G.t) continue;
         if(dist2(bx,by,e.x,e.y) < (20+e.def.r)*(20+e.def.r)){
           e['_wk'+i]=G.t + ts.cd/G.stats.atk;
-          hitEnemy(e, ts.dmg*G.stats.meleeMul, Math.atan2(e.y-P.y,e.x-P.x), 120, rollCrit());
+          hitEnemy(e, ts.dmg*clsMul(def), Math.atan2(e.y-P.y,e.x-P.x), 120, rollCrit());
         }
       }
       return;
@@ -276,7 +282,7 @@ function updateWeapons(dt){
       for(const e of G.enemies){
         const d=Math.hypot(e.x-P.x,e.y-P.y);
         if(d<def.range*G.stats.rangeMul+e.def.r && Math.abs(angDiff(baseA,Math.atan2(e.y-P.y,e.x-P.x)))<def.cone){
-          hitEnemy(e, ts.dmg*G.stats.meleeMul, baseA, def.knock, rollCrit());
+          hitEnemy(e, ts.dmg*clsMul(def), baseA, def.knock, rollCrit());
         }
       }
       for(let k=0;k<4;k++) spawnPart(w.hx,w.hy, baseA+rand(-0.4,0.4), rand(240,380), 0.3, '#bde8c4', 2);
@@ -288,7 +294,7 @@ function updateWeapons(dt){
       const spread = def.spread? (c-(count-1)/2)*def.spread : rand(-0.03,0.03);
       const a=w.aim+spread;
       G.bullets.push({ x:w.hx, y:w.hy, vx:Math.cos(a)*def.speed, vy:Math.sin(a)*def.speed,
-        dmg:ts.dmg, pierce:def.pierce||0, r:def.aoe?7:5, life:((def.range||400)*G.stats.rangeMul)/def.speed,
+        dmg:ts.dmg*clsMul(def), pierce:def.pierce||0, r:def.aoe?7:5, life:((def.range||400)*G.stats.rangeMul)/def.speed,
         key:w.key, aoe:(def.aoe||0)*G.stats.areaMul, knock:def.knock||60, crit:rollCrit(),
         boom:!!def.boomerang, phase:0, spin:rand(0,TAU), hitSet:{} });
     }
@@ -352,6 +358,10 @@ function hitEnemy(e, dmg, ang, knock, crit){
   }
   const final=Math.max(1,Math.round(dmg*mult));
   e.hp-=final; e.flash=0.09;
+  if(G.stats.lifesteal>0 && !G.player.dead && G.hp>0 && G.hp<G.stats.maxHP){
+    G.lsAcc=(G.lsAcc||0)+final*G.stats.lifesteal;
+    if(G.lsAcc>=1){ const h=Math.floor(G.lsAcc); G.lsAcc-=h; G.hp=Math.min(G.stats.maxHP,G.hp+h); }
+  }
   const kr = e.def.knockR!==undefined? e.def.knockR : 1;
   e.kx += Math.cos(ang)*knock*kr; e.ky += Math.sin(ang)*knock*kr;
   floatText(e.x+rand(-8,8), e.y-e.def.r-10, final, blocked?'#9aa2ae':(crit?'#ffd166':'#ffffff'), crit);
@@ -379,7 +389,7 @@ function killEnemy(e){
   if(e.def.r>24) for(let k=0;k<4;k++) spawnPart(e.x,e.y, rand(0,TAU), rand(15,50), rand(0.7,1.1), 'smoke', rand(9,16));
   if(e.def.splits && !e.child){ for(let s=0;s<e.def.splits;s++) spawnEnemy('swarm', e.x+rand(-14,14), e.y+rand(-14,14), true); }
   if(e.def.elite){
-    const loot=12+3*G.wave;
+    const loot=Math.round((12+3*G.wave)*(1+G.stats.luck));
     for(let m=0;m<loot;m++) G.pickups.push({ x:e.x+rand(-16,16), y:e.y+rand(-16,16),
       vx:rand(-120,120), vy:rand(-140,-20), mag:false, t:0, kind:'bolt', val:1 });
     G.pickups.push({ x:e.x, y:e.y, vx:rand(-40,40), vy:-60, mag:false, t:0, kind:'burger', val:15 });
@@ -711,7 +721,7 @@ function updateWarns(dt){
       if(w.kind==='bossw') spawnEnemy(w.ekind, w.x, w.y);
       else if(w.kind==='elite') spawnEliteAt(w.ekind, w.x, w.y);
       else if(w.kind==='drop'){
-        G.pickups.push({ x:w.x, y:w.y, vx:0, vy:0, mag:false, t:0, kind:'crate', val:8+2*G.wave });
+        G.pickups.push({ x:w.x, y:w.y, vx:0, vy:0, mag:false, t:0, kind:'crate', val:Math.round((8+2*G.wave)*(1+G.stats.luck)) });
         G.cam.shake=Math.min(10,G.cam.shake+4);
         noiseHit(0.12,0.12,900);
       }
@@ -844,9 +854,9 @@ function onBossDown(){
 
 /* ---------------- shop ---------------- */
 function tierRoll(){
-  const w=G.wave;
-  const t3 = w>=6 ? Math.min(0.22, 0.04*(w-5)) : 0;
-  const t2 = w>=3 ? Math.min(0.42, 0.10+0.05*(w-3)) : (w>=2?0.08:0);
+  const w=G.wave, lk=1+G.stats.luck;
+  const t3 = (w>=6 ? Math.min(0.22, 0.04*(w-5)) : 0)*lk;
+  const t2 = (w>=3 ? Math.min(0.42, 0.10+0.05*(w-3)) : (w>=2?0.08:0))*lk;
   const r=Math.random();
   if(r<t3) return 3; if(r<t3+t2) return 2; return 1;
 }
@@ -949,11 +959,14 @@ function renderShop(){
   rb.textContent='Reroll (🔩 '+rerollCost()+')';
   rb.disabled = G.mats<rerollCost();
   const st=G.stats;
-  document.getElementById('statpanel').innerHTML=`<h3>DAD STATS</h3>
+  document.getElementById('statpanel').innerHTML=`<h3>${(CHAMPS[G.champ]||CHAMPS.dad).name.toUpperCase()} STATS</h3>
     Max HP <span class="sv">${st.maxHP}</span> · Regen <span class="sv">${st.regen}/4s</span> ·
     Damage <span class="sv">${Math.round(st.dmg*100)}%</span> · Atk Speed <span class="sv">${Math.round(st.atk*100)}%</span><br>
     Move <span class="sv">${Math.round(st.move)}</span> · Armor <span class="sv">${st.armor}</span> ·
-    Crit <span class="sv">${Math.round(st.crit*100)}%</span> · Pickup <span class="sv">${Math.round(st.pickup)}</span>`;
+    Crit <span class="sv">${Math.round(st.crit*100)}%</span> · Pickup <span class="sv">${Math.round(st.pickup)}</span><br>
+    Melee <span class="sv">${Math.round(st.meleeMul*100)}%</span> · Ranged <span class="sv">${Math.round(st.rangedMul*100)}%</span> ·
+    Blast <span class="sv">${Math.round(st.blastMul*100)}%</span> · Dodge <span class="sv">${Math.round(st.dodge*100)}%</span> ·
+    Luck <span class="sv">${Math.round(st.luck*100)}%</span> · Lifesteal <span class="sv">${Math.round(st.lifesteal*100)}%</span>`;
   const wp=G.weapons.map(w=>`<img src="${ICONURL[w.key]}" alt=""><sup>${w.tier}</sup>`).join(' ');
   document.getElementById('weappanel').innerHTML=`<h3>GARAGE (${G.weapons.length}/${MAX_SLOTS} slots)</h3>
     ${wp}<br>Buy two of the same weapon + tier and they combine.`;
