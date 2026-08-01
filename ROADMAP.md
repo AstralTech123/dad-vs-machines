@@ -21,7 +21,7 @@ Planned:
 - Item pool to 30 plus items across 4 rarity tiers (common, rare, epic,
   legendary), including build-around uniques. See brief Phase 3 items 3 and 4.
 
-## R3: Character select, 10 plus champs with roles
+## R3: Character select, 10 plus champs with roles (SHIPPED 2026-08-01, 11 champs live)
 Premise: middle aged suburbanites raging against the machines. Roles: tank,
 melee, ranged, caster (spell and active power). Each champ gets base stat
 tweaks plus one signature perk. Candidate cast, have fun with it:
