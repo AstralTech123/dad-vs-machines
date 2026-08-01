@@ -60,6 +60,18 @@ function showWin(){
 }
 /* ---------------- champion select ---------------- */
 let selChamp='dad';
+const CHAMP_IMGS={};
+/* portrait rendered by the exact same drawBody used in the yard, so the
+   card always matches the in-game character */
+function champPortrait(key){
+  if(CHAMP_IMGS[key]) return CHAMP_IMGS[key];
+  const c=document.createElement('canvas'); c.width=c.height=96;
+  const g=c.getContext('2d');
+  g.imageSmoothingEnabled=false;
+  g.translate(48,46); g.scale(1.5,1.5);
+  drawBody(g, Object.assign({},LOOKS.dad,LOOKS[key]||{}), 1, 0);
+  return CHAMP_IMGS[key]=c.toDataURL();
+}
 function buildChampSelect(){
   const grid=document.getElementById('champgrid');
   grid.innerHTML='';
@@ -67,7 +79,7 @@ function buildChampSelect(){
     const c=CHAMPS[key];
     const el=document.createElement('div');
     el.className='champcard'+(key===selChamp?' sel':'');
-    el.innerHTML=`<div class="cpicon">${c.icon}</div><div class="cpname">${c.name}</div>`+
+    el.innerHTML=`<img class="cpimg" src="${champPortrait(key)}" alt=""><div class="cpname">${c.name}</div>`+
       `<div class="cprole ${c.role.toLowerCase().replace(/[^a-z]/g,'')}">${c.role}</div>`;
     el.addEventListener('click',()=>{ if(selChamp!==key){ selChamp=key; sfx.click(); buildChampSelect(); } });
     grid.appendChild(el);
