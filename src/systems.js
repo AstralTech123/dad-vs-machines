@@ -228,6 +228,9 @@ function updatePlayer(dt){
   }
   P.regenT+=dt;
   if(P.regenT>=4){ P.regenT-=4; if(st.regen>0 && G.hp<st.maxHP){ G.hp=Math.min(st.maxHP,G.hp+st.regen); floatText(P.x,P.y-40,'+'+st.regen,'#9be06f'); updateHUD(); } }
+  // owning a legendary earns you the WoW sparkle
+  if(G.hasLegend && Math.random()<dt*4)
+    spawnPart(P.x+rand(-14,14), P.y+rand(-22,8), -Math.PI/2+rand(-0.4,0.4), rand(8,26), 0.55, '#ffd166', 2);
 }
 /* returns true when the attack connected (including a dodge, which still
    consumes the attacker's swing) so callers can pace their cooldowns */
@@ -313,7 +316,8 @@ function updateWeapons(dt){
           hitEnemy(e, ts.dmg*clsMul(def), baseA, def.knock, rollCrit());
         }
       }
-      for(let k=0;k<4;k++) spawnPart(w.hx,w.hy, baseA+rand(-0.4,0.4), rand(240,380), 0.3, '#bde8c4', 2);
+      for(let k=0;k<9;k++) spawnPart(w.hx,w.hy, baseA+rand(-0.55,0.55), rand(220,460), rand(0.25,0.4),
+        pick(['#bde8c4','#e8f7ff','#9be06f']), rand(2,3.5));
       return;
     }
     sfx.shoot(def.pitch);
@@ -1080,6 +1084,7 @@ function applyItem(it){
   st.ultNeed=Math.max(5, st.ultNeed);
   st.dashCdMax=Math.max(0.6, st.dashCdMax);
   G.hp=Math.max(1, Math.min(G.hp, st.maxHP));
+  if(it.rar===5) G.hasLegend=true;
   if(it.ability==='mortgage'){ G.mats+=70; st.priceMul+=0.1; }
   else if(it.ability==='gnome'){
     G.abil.gnome=(G.abil.gnome||0)+1;

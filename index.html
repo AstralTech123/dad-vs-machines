@@ -161,8 +161,16 @@
   .card.r1 { border-color:#4a5044; }
   .card.r2 { border-color:#5c8a44; }
   .card.r3 { border-color:#3f7fd1; box-shadow:0 0 14px rgba(63,127,209,.15) inset; }
-  .card.r4 { border-color:#a45fe0; box-shadow:0 0 16px rgba(164,95,224,.2) inset; }
-  .card.r5 { border-color:#ffd166; box-shadow:0 0 18px rgba(255,209,102,.28) inset; }
+  @keyframes pulse4 {
+    0%,100% { box-shadow:0 0 14px rgba(164,95,224,.25) inset, 0 0 6px rgba(164,95,224,.2); }
+    50%     { box-shadow:0 0 24px rgba(164,95,224,.5) inset, 0 0 16px rgba(164,95,224,.45); }
+  }
+  @keyframes pulse5 {
+    0%,100% { box-shadow:0 0 16px rgba(255,209,102,.3) inset, 0 0 8px rgba(255,209,102,.25); }
+    50%     { box-shadow:0 0 28px rgba(255,209,102,.62) inset, 0 0 20px rgba(255,209,102,.55); }
+  }
+  .card.r4 { border-color:#a45fe0; animation:pulse4 2.2s ease-in-out infinite; }
+  .card.r5 { border-color:#ffd166; animation:pulse5 1.7s ease-in-out infinite; }
   .card.t2 { box-shadow:0 0 14px rgba(63,127,209,.15) inset; }
   .card.t3 { box-shadow:0 0 16px rgba(164,95,224,.2) inset; }
   .card .cicon { font-size:30px; height:38px; display:flex; align-items:center; }
@@ -348,6 +356,7 @@
 </div>
 
 <script src="src/data.js"></script>
+<script src="src/assets.js"></script>
 <script src="src/audio.js"></script>
 <script src="src/systems.js"></script>
 <script src="src/render.js"></script>

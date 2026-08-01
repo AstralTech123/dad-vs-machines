@@ -582,9 +582,10 @@ function drawBody(c,L,f,step){
     c.beginPath(); c.moveTo(sx+3,sy+5); c.lineTo(sx+6.5,sy+1); c.lineTo(sx+10,sy+5); c.stroke();
   }
   shoe(-13,22+step*2); shoe(1,22-step*2);
-  c.fillStyle=L.shorts; roundedRectPath(c,-11,3,22,11,2); c.fill();
+  c.strokeStyle='rgba(18,22,16,0.6)'; c.lineWidth=1.5;
+  c.fillStyle=L.shorts; roundedRectPath(c,-11,3,22,11,2); c.fill(); c.stroke();
   c.fillStyle=L.shorts2; c.fillRect(-11,7,5,6); c.fillRect(6,7,5,6);
-  c.fillStyle=L.shirt; roundedRectPath(c,-11,-13,22,17,3); c.fill();
+  c.fillStyle=L.shirt; roundedRectPath(c,-11,-13,22,17,3); c.fill(); c.stroke();
   c.fillStyle=L.shirt2; c.fillRect(-2,-13,4,9);
   c.fillStyle='#e8e4da';
   c.beginPath(); c.moveTo(-6,-13); c.lineTo(-1,-8); c.lineTo(-1,-13); c.closePath(); c.fill();
@@ -595,6 +596,8 @@ function drawBody(c,L,f,step){
   c.fillStyle=L.shirt; c.fillRect(-15,-10+sw*0.4,4.5,10); c.fillRect(10.5,-10-sw*0.4,4.5,10);
   c.fillStyle='#e8c49a'; c.fillRect(-15,0+sw*0.4,4.5,5); c.fillRect(10.5,0-sw*0.4,4.5,5);
   c.fillStyle='#e8c49a'; roundedRectPath(c,-8,-28,16,16,4); c.fill();
+  c.strokeStyle='rgba(18,22,16,0.6)'; c.lineWidth=1.5;
+  roundedRectPath(c,-8,-28,16,16,4); c.stroke();
   c.fillStyle='#dcb387'; c.fillRect(f===1?-9:7,-22,2.5,4);
   c.fillStyle=L.hair; c.fillRect(-8,-26,3,8); c.fillRect(5,-26,3,8);
   c.fillStyle=L.top; c.beginPath(); c.ellipse(0,-27,7,3.2,0,Math.PI,0); c.fill();
@@ -605,6 +608,8 @@ function drawBody(c,L,f,step){
 function drawGnome(g){
   ctx.save(); ctx.translate(g.x,g.y);
   ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0,10,9,3.5,0,0,TAU); ctx.fill();
+  const S=sprite('gnome');
+  if(S){ ctx.drawImage(S,-14,-20,28,28); ctx.restore(); return; }
   ctx.fillStyle='#3f6b94'; ctx.fillRect(-5,-2,10,10);
   ctx.fillStyle='#e8e4da'; ctx.beginPath(); ctx.arc(0,-4,5,0,TAU); ctx.fill();
   ctx.fillStyle='#e8c49a'; ctx.fillRect(-2.5,-7,5,3);
@@ -630,7 +635,13 @@ function drawDad(P){
   if(blink) ctx.globalAlpha=0.45;
   ctx.fillStyle='rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.ellipse(0,30,17,5.5,0,0,TAU); ctx.fill();
-  drawBody(ctx,L,f,step);
+  const S=sprite(G.champ)||sprite('dad');
+  if(S){
+    if(f===-1) ctx.scale(-1,1);
+    ctx.drawImage(S,-34,-36,68,68);
+  } else {
+    drawBody(ctx,L,f,step);
+  }
   ctx.restore();
   ctx.globalAlpha=1;
 }
@@ -641,6 +652,13 @@ function drawMower(P){
   if(f===-1) ctx.scale(-1,1);
   ctx.fillStyle='rgba(0,0,0,0.4)';
   ctx.beginPath(); ctx.ellipse(0,30,30,8,0,0,TAU); ctx.fill();
+  const S=sprite('mower');
+  if(S){
+    ctx.drawImage(S,-42,-46,84,84);
+    ctx.restore();
+    drawGlow('gold',x,y,44,0.22+0.1*Math.sin(AT*20));
+    return;
+  }
   ctx.fillStyle='#1a1a1a';
   ctx.beginPath(); ctx.arc(-16,22,11,0,TAU); ctx.fill();
   ctx.beginPath(); ctx.arc(18,24,7,0,TAU); ctx.fill();
@@ -1143,6 +1161,20 @@ function draw(){
     }
     for(const p of G.pickups) drawPickup(p);
     for(const e of G.enemies) drawEnemy(e);
+    // ability aura rings, drawn under the characters
+    if(G.mode!=='menu' && !G.player.dead){
+      const P=G.player;
+      if(G.abil.zapaura){
+        ctx.save(); ctx.strokeStyle='rgba(143,216,255,0.3)'; ctx.lineWidth=2;
+        ctx.setLineDash([6,10]); ctx.lineDashOffset=-AT*40;
+        ctx.beginPath(); ctx.arc(P.x,P.y,150,0,TAU); ctx.stroke(); ctx.restore();
+      }
+      if(G.stats.auraSlow>0){
+        ctx.save(); ctx.strokeStyle='rgba(196,141,240,0.28)'; ctx.lineWidth=2;
+        ctx.setLineDash([10,12]); ctx.lineDashOffset=AT*30;
+        ctx.beginPath(); ctx.arc(P.x,P.y,190,0,TAU); ctx.stroke(); ctx.restore();
+      }
+    }
     for(const g of G.gnomes) drawGnome(g);
     if(!G.player.dead){
       if(G.player.mowT>0) drawMower(G.player);
