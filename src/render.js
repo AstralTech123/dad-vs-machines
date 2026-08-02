@@ -195,14 +195,19 @@ function getScores(){ try{ return JSON.parse(localStorage.getItem('dvm_scores')|
 function recordScore(name){
   const s=getScores();
   const nm=(name||'DAD').trim().slice(0,16)||'DAD';
-  s.push({ n:nm, score:runScore(), wave:G.wave, champ:CHAMPS[G.players[0].champ].name,
-    diff:DIFFS[G.diff||2].name, coop:G.players.length, d:Date.now() });
+  const entry={ n:nm, score:runScore(), wave:G.wave, champ:CHAMPS[G.players[0].champ].name,
+    diff:DIFFS[G.diff||2].name, coop:G.players.length, d:Date.now() };
+  s.push(entry);
   s.sort((a,b)=>b.score-a.score);
   if(s.length>25) s.length=25;
   try{
     localStorage.setItem('dvm_scores',JSON.stringify(s));
     localStorage.setItem('dvm_name',nm);
   }catch(e){}
+  /* also post to the shared neighborhood board; quiet if offline */
+  submitGlobalScore({ name:entry.n, score:entry.score, wave:entry.wave,
+    champ:entry.champ, diff:entry.diff, coop:entry.coop })
+    .then(ok=>{ if(ok) toast('🌍 Posted to the neighborhood board'); });
 }
 function prepScoreRow(which){
   const inp=document.getElementById(which+'name');
@@ -220,13 +225,28 @@ for(const which of ['dead','win','pause']){
     sfx.buy(); toast('🏆 Score recorded in the neighborhood record book');
   });
 }
+function scoreRows(list){
+  return '<table>'+list.map((r,i)=>
+    `<tr><td class="sv">#${i+1}</td><td class="sv">${String(r.n||r.name||'?').replace(/[<>&]/g,'')}</td>`+
+    `<td>${r.score}</td><td>wave ${r.wave}</td><td>${r.champ}${(r.coop||1)>1?' +'+(r.coop-1):''}</td><td>${r.diff}</td></tr>`).join('')+'</table>';
+}
 function buildRecords(){
   const s=getScores();
-  document.getElementById('recordsbody').innerHTML = s.length===0
-    ? '<p style="color:#a39c8a">No runs recorded yet on this device. Go make history.</p>'
-    : '<table>'+s.slice(0,10).map((r,i)=>
-        `<tr><td class="sv">#${i+1}</td><td class="sv">${r.n.replace(/[<>&]/g,'')}</td>`+
-        `<td>${r.score}</td><td>wave ${r.wave}</td><td>${r.champ}${r.coop>1?' +'+(r.coop-1):''}</td><td>${r.diff}</td></tr>`).join('')+'</table>';
+  document.getElementById('recordsbody').innerHTML =
+    '<h3>📱 THIS DEVICE</h3>'+(s.length===0
+      ? '<p style="color:#a39c8a">No runs recorded yet on this device. Go make history.</p>'
+      : scoreRows(s.slice(0,10)));
+  const gb=document.getElementById('recordsglobal');
+  gb.innerHTML='<h3>🌍 THE NEIGHBORHOOD</h3><p style="color:#a39c8a">Checking the board...</p>';
+  fetchGlobalScores(10).then(rows=>{
+    if(rows===null){
+      gb.innerHTML='<h3>🌍 THE NEIGHBORHOOD</h3><p style="color:#a39c8a">The shared board is not reachable right now. Local records below still count.</p>';
+    } else if(rows.length===0){
+      gb.innerHTML='<h3>🌍 THE NEIGHBORHOOD</h3><p style="color:#a39c8a">Nobody has posted yet. First name on the board owns the block.</p>';
+    } else {
+      gb.innerHTML='<h3>🌍 THE NEIGHBORHOOD</h3>'+scoreRows(rows);
+    }
+  });
 }
 document.getElementById('mrecbtn').addEventListener('click',()=>{ sfx.click(); buildRecords(); show('records'); });
 document.getElementById('recordsclose').addEventListener('click',()=>{ sfx.click(); hide('records'); });
