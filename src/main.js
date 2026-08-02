@@ -146,7 +146,12 @@ function updatePads(){
       continue;
     }
     const x=gp.axes[0]||0, y=gp.axes[1]||0, mag=Math.hypot(x,y);
-    st.x=x; st.y=y; st.mag=mag;
+    /* a stick must prove it can rest near center once before its axes are
+       trusted; devices pinned at full tilt (pedals, broken sticks, phantom
+       HID gear) never calibrate and can never steer anyone */
+    if(!st.calibrated && mag<0.12) st.calibrated=true;
+    if(st.calibrated && mag>0.24){ st.x=x; st.y=y; st.mag=mag; }
+    else { st.x=0; st.y=0; st.mag=0; }
     for(let i=0;i<gp.buttons.length;i++){
       const p=!!(gp.buttons[i]&&gp.buttons[i].pressed);
       st.edge[i]=p&&!st.pressed[i];
@@ -171,12 +176,12 @@ function handlePadsGame(){
     if(st.edge[0]){ setActive(pl); tryDash(); saveActive(); }
     if(st.edge[1]||st.edge[2]){ setActive(pl); tryMow(); saveActive(); }
   }
-  /* legacy PAD alias: single-player moves with any pad */
+  /* legacy PAD alias: single-player moves with any calibrated pad */
   PAD.active=false;
   if(G.players.length===1){
     for(const idxStr in PADS){
       const st=PADS[idxStr];
-      if(st.mag>0.18){ PAD.active=true; PAD.x=st.x; PAD.y=st.y; break; }
+      if(st.mag>0){ PAD.active=true; PAD.x=st.x; PAD.y=st.y; break; }
     }
   }
 }

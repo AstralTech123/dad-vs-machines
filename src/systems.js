@@ -6,14 +6,14 @@ function tryDash(){
   let ix=0, iy=0;
   if(G.active && G.active.pad!==null){
     const st2=PADS[G.active.pad];
-    if(st2 && st2.mag>0.18){ ix=st2.x; iy=st2.y; }
+    if(st2 && st2.mag>0){ ix=st2.x; iy=st2.y; }
   } else {
     if(keys['w']||keys['arrowup']) iy-=1;
     if(keys['s']||keys['arrowdown']) iy+=1;
     if(keys['a']||keys['arrowleft']) ix-=1;
     if(keys['d']||keys['arrowright']) ix+=1;
     if(touch.active && (Math.abs(touch.dx)>7||Math.abs(touch.dy)>7)){ ix=touch.dx; iy=touch.dy; }
-    if(PAD.active){ ix=PAD.x; iy=PAD.y; }
+    if(PAD.active && Math.hypot(ix,iy)<0.01){ ix=PAD.x; iy=PAD.y; }
   }
   let len=Math.hypot(ix,iy);
   if(len<0.01){ ix=P.face; iy=0; len=1; }
@@ -223,14 +223,15 @@ function updatePlayer(dt){
   let ix=0, iy=0;
   if(G.active && G.active.pad!==null){
     const st2=PADS[G.active.pad];
-    if(st2 && st2.mag>0.18){ ix=st2.x; iy=st2.y; }
+    if(st2 && st2.mag>0){ ix=st2.x; iy=st2.y; }
   } else {
     if(keys['w']||keys['arrowup']) iy-=1;
     if(keys['s']||keys['arrowdown']) iy+=1;
     if(keys['a']||keys['arrowleft']) ix-=1;
     if(keys['d']||keys['arrowright']) ix+=1;
     if(touch.active && (Math.abs(touch.dx)>7||Math.abs(touch.dy)>7)){ ix=touch.dx/52; iy=touch.dy/52; }
-    if(PAD.active){ ix=PAD.x; iy=PAD.y; }
+    /* pad steers P1 only when keyboard and touch are idle */
+    if(PAD.active && Math.hypot(ix,iy)<0.01){ ix=PAD.x; iy=PAD.y; }
   }
   const len=Math.hypot(ix,iy)||1;
   const mudF = inMud(P.x,P.y)?0.55:1;
