@@ -35,7 +35,7 @@ function tryDash(){
 }
 function tryMow(){
   const P=G.player;
-  if(G.mode!=='play'||P.dead||P.mowT>0||P.ult<G.stats.ultNeed) return;
+  if(G.mode!=='play'||P.dead||P.mowT>0||P.ult<scaledUltNeed(G.stats)) return;
   P.mowT=G.stats.mowDur; P.ult=0; G.ultToast=false;
   banner('MOWER TIME','PURE YARD WORK');
   sfx.bossroar(); G.cam.shake=Math.min(16,G.cam.shake+8);
@@ -486,9 +486,9 @@ function killEnemy(e){
     }
   }
   const P=G.player;
-  if(P.ult<G.stats.ultNeed){
+  if(P.ult<scaledUltNeed(G.stats)){
     P.ult++;
-    if(P.ult>=G.stats.ultNeed && !G.ultToast){ G.ultToast=true; toast('🚜 MOWER READY! Press E'); sfx.combine(); }
+    if(P.ult>=scaledUltNeed(G.stats) && !G.ultToast){ G.ultToast=true; toast('🚜 MOWER READY! Press E'); sfx.combine(); }
   }
   if(G.contract){
     if(G.contract.def.key==='swarm' && e.key==='swarm') G.contract.prog++;

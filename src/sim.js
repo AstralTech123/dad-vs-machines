@@ -26,7 +26,7 @@ function simBotStep(){
   if(ax>0.3) keys['d']=true; if(ax<-0.3) keys['a']=true;
   if(ay>0.3) keys['s']=true; if(ay<-0.3) keys['w']=true;
   if(P.dashCd<=0 && near>=4) tryDash();
-  if(P.ult>=G.stats.ultNeed && near>=3) tryMow();
+  if(P.ult>=scaledUltNeed(G.stats) && near>=3) tryMow();
 }
 function simTick(dt){
   if(G.mode==='play'){

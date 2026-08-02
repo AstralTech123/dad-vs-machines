@@ -16,7 +16,7 @@ function updateHUD(){
   document.getElementById('matcount').textContent='🔩 '+G.mats;
   document.getElementById('killcount').textContent=G.kills+' machines scrapped';
   const P=p0.body;
-  const un=p0.stats.ultNeed||ULT_NEED;
+  const un=scaledUltNeed(p0.stats);
   document.getElementById('ultfill').style.width=(P.ult/un*100)+'%';
   const uw=document.getElementById('ultwrap');
   const ut=document.getElementById('ulttext');
@@ -277,7 +277,7 @@ function statsHTML(full){
       rows.push('🛒 Shop for: '+[...new Set(wants)].join(', ')+'. Cards marked ★ GOOD FOR YOU fit your build.');
     }
     if(c&&c.perk) rows.push('★ '+c.perkDesc);
-    rows.push('🚜 Mower ultimate: kills charge it ('+G.player.ult+'/'+st.ultNeed+'). Press E or tap the bar when full.');
+    rows.push('🚜 Mower ultimate: kills charge it ('+G.player.ult+'/'+scaledUltNeed(st)+', more needed each wave). Press E or tap the bar when full.');
     rows.push('🔩 Bolts collected this run: '+(G.active&&G.active.earned||0)+' (the wallet is shared, this is your contribution)');
     for(const k in G.itemCounts){ const it=ITEMS[k]; if(it&&it.ability) rows.push(it.icon+' '+it.name+': '+it.note); }
     for(const k in G.yard){ if(G.yard[k]>0) rows.push(YARD_UPGRADES[k].icon+' '+yardName(k)+' Lv'+G.yard[k]); }
@@ -320,7 +320,7 @@ function buildGuide(){
   document.getElementById('guidebody').innerHTML=`
     <h3>CONTROLS</h3>
     <p><span class="sv">WASD</span> or arrows to move · <span class="sv">SPACE</span> dash with i-frames ·
-    <span class="sv">E</span> rides the mower once 25 kills charge it · <span class="sv">P</span> pause.<br>
+    <span class="sv">E</span> rides the mower once kills charge it (the bar needs more each wave) · <span class="sv">P</span> pause.<br>
     Touch: drag anywhere to move, two finger tap to dash, tap the mower bar to ride.<br>
     Controller: left stick moves, <span class="sv">A</span> dashes, <span class="sv">B</span> or <span class="sv">X</span> rides the mower, <span class="sv">Start</span> pauses. Menus use the pointer.<br>
     Couch co-op: up to 4 neighbors. Press <span class="sv">A</span> on a controller at champ select to join, dpad picks your champ.

@@ -282,6 +282,12 @@ const DIFFS = {
   5:{ name:'ROBOT UPRISING',  desc:'The singularity arrived and it is furious.',   hp:2.2,  dmg:1.8,  rate:1.7,  loot:1.6 },
 };
 const DF=()=>DIFFS[G.diff||2];
+/* mower charge requirement grows with the wave so the ult stays a moment,
+   not a permanent state; upgrades lower the base before scaling */
+function scaledUltNeed(st){
+  const w=Math.max(1,(G&&G.wave)||1);
+  return Math.round((st.ultNeed||ULT_NEED)*(1+0.15*(w-1)));
+}
 
 /* ---------------- chore contracts (optional wave objectives) ---------------- */
 const CONTRACTS = [
