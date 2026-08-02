@@ -276,6 +276,18 @@ document.getElementById('quitbtn').addEventListener('click',()=>{ sfx.click(); h
 document.getElementById('pguidebtn').addEventListener('click',()=>{ sfx.click(); buildGuide(); show('guide'); });
 document.getElementById('mguidebtn').addEventListener('click',()=>{ initAudio(); sfx.click(); buildGuide(); show('guide'); });
 document.getElementById('guideclose').addEventListener('click',()=>{ sfx.click(); hide('guide'); });
+function markBindBtns(){
+  document.getElementById('bindA').className='bigbtn slim'+(BINDS.dash===' '?'':' alt');
+  document.getElementById('bindB').className='bigbtn slim'+(BINDS.dash==='shift'?'':' alt');
+}
+document.getElementById('mctrlbtn').addEventListener('click',()=>{ sfx.click(); markBindBtns(); show('ctrlpanel'); });
+document.getElementById('ctrlclose').addEventListener('click',()=>{ sfx.click(); hide('ctrlpanel'); });
+document.getElementById('bindA').addEventListener('click',()=>{
+  setBinds({ dash:' ', mow:'e', name:'SPACE dash · E mower' }); sfx.click(); markBindBtns();
+});
+document.getElementById('bindB').addEventListener('click',()=>{
+  setBinds({ dash:'shift', mow:'q', name:'SHIFT dash · Q mower' }); sfx.click(); markBindBtns();
+});
 document.getElementById('deadmenubtn').addEventListener('click',()=>{ sfx.click(); hide('dead'); LOBBY.length=0; newGame(); show('menu'); });
 document.getElementById('winmenubtn').addEventListener('click',()=>{ sfx.click(); hide('win'); LOBBY.length=0; newGame(); show('menu'); });
 document.getElementById('endlessbtn').addEventListener('click',()=>{
@@ -1078,7 +1090,20 @@ function drawEnemy(e){
     ctx.fillText(T.name,0,-r-16);
   }
   if(e.giant) ctx.scale(1.22,1.22);
-  if(e.key==='chat'){
+  if(e.key==='courier'){
+    ctx.translate(0,bob);
+    drawGlow('gold',0,0,r*2,0.55);
+    ctx.fillStyle='#d4af37'; ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.fill();
+    ctx.strokeStyle='#8a6d1c'; ctx.lineWidth=2.5; ctx.stroke();
+    ctx.fillStyle='#f5e28a'; ctx.beginPath(); ctx.arc(-r*0.25,-r*0.25,r*0.45,0,TAU); ctx.fill();
+    /* bolt sack on its back */
+    ctx.fillStyle='#8a5c34'; ctx.beginPath(); ctx.arc(0,-r-6,9,0,TAU); ctx.fill();
+    ctx.strokeStyle='#5a3a1e'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(-4,-r-13); ctx.lineTo(4,-r-13); ctx.stroke();
+    ctx.fillStyle='#ffd166'; ctx.font='bold 9px monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('$',0,-r-6);
+    ctx.fillStyle='#2a2a2a'; ctx.fillRect(-r*0.4,-3,r*0.3,4); ctx.fillRect(r*0.12,-3,r*0.3,4);
+  } else if(e.key==='chat'){
     ctx.translate(0,bob);
     drawGlow('red',0,-r-8,9,0.5);
     ctx.fillStyle='#394047'; ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.fill();
@@ -1496,7 +1521,7 @@ function drawArrows(cam,Z){
   if(G.mode!=='play'&&G.mode!=='pause') return;
   const targets=[];
   for(const e of G.enemies){
-    if(e.def.elite) targets.push({x:e.x,y:e.y,c:'#ffd166'});
+    if(e.def.elite||e.def.courier) targets.push({x:e.x,y:e.y,c:'#ffd166'});
     if(e.def.boss) targets.push({x:e.x,y:e.y,c:'#ff5a5f'});
   }
   for(const p of G.pickups){

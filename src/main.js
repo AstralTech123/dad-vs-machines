@@ -76,6 +76,15 @@ function newGame(){
 function mkWeapon(key,tier){ return { key, tier, cd:rand(0,0.3), aim:rand(0,TAU), recoil:0, orbitA:rand(0,TAU), flash:0 }; }
 
 /* ---------------- input: keyboard + touch (player 1) ---------------- */
+/* keyboard presets, saved in the browser. touch and gamepads are automatic. */
+let BINDS={ dash:' ', mow:'e', name:'SPACE dash · E mower' };
+try{ const s=JSON.parse(localStorage.getItem('dvm_binds')||'null'); if(s&&s.dash) BINDS=s; }catch(err){}
+function setBinds(b){
+  BINDS=b;
+  try{ localStorage.setItem('dvm_binds',JSON.stringify(b)); }catch(err){}
+  const h=document.getElementById('hintline');
+  if(h) h.textContent='P pause · M mute · '+BINDS.name;
+}
 const keys={};
 addEventListener('keydown', e=>{
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
@@ -83,9 +92,10 @@ addEventListener('keydown', e=>{
   const k=e.key.toLowerCase();
   if(k==='m') toggleMute();
   if(k==='p' || e.key==='Escape') togglePause();
-  if(k===' '){ setActive(G.players[0]); tryDash(); saveActive(); }
-  if(k==='e'){ setActive(G.players[0]); tryMow(); saveActive(); }
+  if(k===BINDS.dash || (BINDS.dash===' '&&e.key===' ')){ setActive(G.players[0]); tryDash(); saveActive(); }
+  if(k===BINDS.mow){ setActive(G.players[0]); tryMow(); saveActive(); }
 });
+setBinds(BINDS);
 addEventListener('keyup', e=> keys[e.key.toLowerCase()]=false);
 addEventListener('touchstart', ()=>{
   document.getElementById('touchnote').style.display='block';
@@ -200,6 +210,10 @@ function handlePadsShop(){
     if(st.edge[0]){
       if((pl.shopCur||0)<pl.offers.length) buyOffer(pl,pl.shopCur||0);
       else rerollFor(pl);
+    }
+    if(st.edge[2] && (pl.shopCur||0)<pl.offers.length){
+      const o=pl.offers[pl.shopCur||0];
+      if(o && !o.sold){ o.locked=!o.locked; sfx.click(); renderShop(); }
     }
   });
 }

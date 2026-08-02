@@ -84,6 +84,8 @@ function startWave(n){
   }
   // chore contract on non-boss waves from wave 2 on
   G.contract = (n>=2 && !bossFor(n)) ? { def:pick(CONTRACTS), prog:0, dmg:false } : null;
+  // rare bolt courier from wave 4 on
+  G.courierT = (n>=4 && Math.random()<0.3) ? rand(8, WAVE_DUR[n]*0.6) : undefined;
   if(G.contract){
     const ctxt='🧹 Optional chore: '+G.contract.def.txt+' (pays bolts and XP)';
     setTimeout(()=>{ if(G.contract) toast(ctxt); }, G.favorApplied?2600:800);
@@ -146,7 +148,7 @@ function spawnEnemy(defKey,x,y,child){
     G.boss=e;
   }
   // traits: from wave 6, machines can spawn with an affix (more loot and XP)
-  if(!d.boss && !child && G.wave>=6 && Math.random() < Math.min(0.3, 0.045*(G.wave-5))*DF().rate){
+  if(!d.boss && !d.courier && !child && G.wave>=6 && Math.random() < Math.min(0.3, 0.045*(G.wave-5))*DF().rate){
     e.trait=pick(Object.keys(TRAITS));
     TRAITS[e.trait].apply(e);
   }
@@ -502,6 +504,13 @@ function killEnemy(e){
   spawnPart(e.x,e.y,0,0,0.18,'flash',e.def.r*1.6);
   if(e.def.r>24) for(let k=0;k<4;k++) spawnPart(e.x,e.y, rand(0,TAU), rand(15,50), rand(0.7,1.1), 'smoke', rand(9,16));
   if(e.def.splits && !e.child){ for(let s=0;s<e.def.splits;s++) spawnEnemy('swarm', e.x+rand(-14,14), e.y+rand(-14,14), true); }
+  if(e.def.courier){
+    const loot=Math.round((20+3*G.wave)*(1+G.stats.luck)*DF().loot*(1+0.25*(G.players.length-1)));
+    for(let m=0;m<loot;m++) G.pickups.push({ x:e.x+rand(-18,18), y:e.y+rand(-18,18),
+      vx:rand(-140,140), vy:rand(-160,-20), mag:false, t:0, kind:'bolt', val:1 });
+    banner('COURIER SCRAPPED','+'+loot+' BOLTS INTERCEPTED');
+    G.cam.shake=14;
+  }
   if(e.def.elite){
     const loot=Math.round((12+3*G.wave)*(1+G.stats.luck)*DF().loot);
     for(let m=0;m<loot;m++) G.pickups.push({ x:e.x+rand(-16,16), y:e.y+rand(-16,16),
@@ -665,6 +674,12 @@ function updateEnemies(dt){
         for(let s=0;s<2;s++) spawnEnemy('swarm', e.x+rand(-20,20), e.y+rand(-20,20), true);
         spawnPart(e.x,e.y,0,0,0.15,'flash',e.def.r*1.3);
       }
+    } else if(ai==='courier'){
+      /* sprints across the yard; catch it before it escapes */
+      if(e.tx===undefined){ e.tx = e.x<ARENA_W/2 ? ARENA_W+90 : -90; e.ty=clamp(e.y+rand(-260,260),120,ARENA_H-120); }
+      const ca2=Math.atan2(e.ty-e.y,e.tx-e.x);
+      e.x+=Math.cos(ca2)*e.spd*dt; e.y+=Math.sin(ca2)*e.spd*dt;
+      if(e.x<-70||e.x>ARENA_W+70){ e._fled=true; }
     } else if(ai==='algo'){
       bossClock(e,dt);
       updateAlgo(e,dt,a,d);
@@ -678,8 +693,9 @@ function updateEnemies(dt){
       bossClock(e,dt);
       updateBoss(e,dt,a,d);
     }
-    e.x=clamp(e.x,40,ARENA_W-40); e.y=clamp(e.y,40,ARENA_H-40);
-    if(!e.def.boss){
+    if(e.def.courier){ e.y=clamp(e.y,40,ARENA_H-40); }
+    else { e.x=clamp(e.x,40,ARENA_W-40); e.y=clamp(e.y,40,ARENA_H-40); }
+    if(!e.def.boss && !e.def.courier){
       [e.x,e.y]=resolveObst(e.x,e.y,e.def.r*0.8);
       const td=Math.hypot(e.x-TRAMP.x,e.y-TRAMP.y);
       if(td<TRAMP.r && e.trampCd<=0){
@@ -710,6 +726,7 @@ function updateEnemies(dt){
       }
     }
   }
+  for(let i=G.enemies.length-1;i>=0;i--) if(G.enemies[i]._fled) G.enemies.splice(i,1);
   for(let i=G.ebullets.length-1;i>=0;i--){
     const b=G.ebullets[i];
     b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt;
@@ -1077,6 +1094,17 @@ function updateWaveFlow(dt){
   if(G.player.dead) return;
   if(G.sub==='play'){
     G.waveTime-=dt;
+    if(G.courierT!==undefined && G.courierT>0){
+      G.courierT-=dt;
+      if(G.courierT<=0){
+        G.courierT=undefined;
+        const fromLeft=Math.random()<0.5;
+        const e=spawnEnemy('courier', fromLeft?-40:ARENA_W+40, rand(300,ARENA_H-300));
+        if(e){ e.x=clamp(e.x,-40,ARENA_W+40); }
+        toast('💰 A BOLT COURIER is cutting through! Catch it!');
+        sfx.elite();
+      }
+    }
     if(G.eliteQ.length && G.waveTime < G.eliteQ[0]){ G.eliteQ.shift(); queueElite(); }
     if(G.waveTime<=0){
       G.waveTime=0;
@@ -1190,8 +1218,9 @@ function rarityRoll(){
 function shopOfferCount(){ return G.players.length>1 ? 3 : 4; }
 function rollOffersFor(pl){
   const prev=G.active; saveActive(); setActive(pl);
-  const offers=[];
-  for(let i=0;i<shopOfferCount();i++){
+  /* locked offers survive rerolls and carry into the next wave's shop */
+  const offers=(pl.offers||[]).filter(o=>o.locked&&!o.sold);
+  for(let i=offers.length;i<shopOfferCount();i++){
     const isWeapon = Math.random()<0.42;
     const tier=tierRoll();
     const pref=(CHAMPS[G.champ]||{}).wpref;
@@ -1363,12 +1392,18 @@ function offerCard(pl,pi,o,i,small){
   }
   const div=document.createElement('div');
   div.className='card '+cls+(o.sold?' sold':'')+(small?' small':'')
-    +(pl.pad!==null && pl.shopCur===i && !o.sold ? ' cur':'');
-  div.innerHTML=`<div class="cicon">${iconHTML}</div><div class="cname">${name}</div>
+    +(pl.pad!==null && pl.shopCur===i && !o.sold ? ' cur':'')
+    +(o.locked?' locked':'');
+  div.innerHTML=`<button class="lockbtn" title="Lock: keep this offer for later (X on a controller)">${o.locked?'🔒':'🔓'}</button>
+    <div class="cicon">${iconHTML}</div><div class="cname">${name}</div>
     ${tierHTML}
     <div class="cdesc">${desc}</div>
-    <button ${canBuyFor(pl,o)?'':'disabled'}>${o.sold?'SOLD':'🔩 '+o.price}</button>`;
-  div.querySelector('button').addEventListener('click',()=>buyOffer(pl,i));
+    <button class="buybtn" ${canBuyFor(pl,o)?'':'disabled'}>${o.sold?'SOLD':'🔩 '+o.price}</button>`;
+  div.querySelector('.buybtn').addEventListener('click',()=>buyOffer(pl,i));
+  div.querySelector('.lockbtn').addEventListener('click',(ev)=>{
+    ev.stopPropagation();
+    o.locked=!o.locked; sfx.click(); renderShop();
+  });
   return div;
 }
 function garageHTML(pl){

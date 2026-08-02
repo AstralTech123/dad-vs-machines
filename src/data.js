@@ -119,6 +119,7 @@ const EDEFS = {
   split:{ name:'Splitter', hp:30, spd:76, dmg:6, r:17, cost:3.5, minW:6, mats:2, weight:5, ai:'chase', splits:3 },
   tank:{ name:'Server Rack', hp:100, spd:38, dmg:14, r:30, cost:6, minW:6, mats:5, weight:4, ai:'chase', knockR:0.12 },
   firewall:{ name:'Firewall', hp:60, spd:50, dmg:9, r:19, cost:4, minW:7, mats:3, weight:4, ai:'chase', frontDR:true, knockR:0.4 },
+  courier:{ name:'BOLT COURIER', hp:60, spd:150, dmg:0, r:16, cost:0, minW:99, mats:0, weight:0, ai:'courier', knockR:0.15, courier:true },
   groomba:{ name:'GOLDEN ROOMBA', hp:105, spd:92, dmg:8, r:20, cost:0, minW:99, mats:0, weight:0, ai:'gcharge', knockR:0.3, elite:true },
   printer:{ name:'PRINTER OF DOOM', hp:140, spd:46, dmg:0, shot:7, r:22, cost:0, minW:99, mats:0, weight:0, ai:'printer', knockR:0.3, elite:true },
   mother:{ name:'MOTHER DRONE', hp:175, spd:66, dmg:6, r:26, cost:0, minW:99, mats:0, weight:0, ai:'mother', knockR:0.3, elite:true },

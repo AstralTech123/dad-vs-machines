@@ -280,6 +280,12 @@
   .colgarage { font-size:11px; color:#aca595; line-height:2; }
   .colgarage .glabel { font-size:9px; letter-spacing:2px; color:#7c8272; }
   .colgarage img { width:20px; height:20px; vertical-align:middle; }
+  .card { position:relative; }
+  .lockbtn { position:absolute; top:6px; right:6px; background:none; border:none; cursor:pointer;
+             font-size:14px; opacity:.55; padding:2px; }
+  .lockbtn:hover { opacity:1; }
+  .card.locked { border-style:dashed; }
+  .card.locked .lockbtn { opacity:1; }
   #gowave { background:linear-gradient(180deg,#ffd97a,#f0a93a); color:#221c10;
             border-bottom:3px solid #a8701c; letter-spacing:1px; }
   #shoppanels { display:flex; gap:12px; margin-top:14px; flex-wrap:wrap; }
@@ -347,6 +353,7 @@
   <button class="bigbtn slim alt" id="mguidebtn" style="margin-top:12px;">HOW TO PLAY</button>
   <button class="bigbtn slim alt" id="mmusicbtn" style="margin-top:12px;">MUSIC: ON</button>
   <button class="bigbtn slim alt" id="msfxbtn" style="margin-top:12px;">SFX: ON</button>
+  <button class="bigbtn slim alt" id="mctrlbtn" style="margin-top:12px;">CONTROLS</button>
   <div id="touchnote">Touch: drag to move, two-finger tap to dash, tap the mower bar to ride.</div>
   <div class="credit">Handcrafted artisanal code. No machines were consulted.</div>
 </div>
@@ -398,6 +405,24 @@
     <button class="bigbtn slim alt" id="sfxbtn">SFX: ON</button>
   </div>
   <div class="controls">Press <span class="kbd">P</span> or tap ⏸ to resume</div>
+</div>
+
+<div id="ctrlpanel" class="overlay hidden">
+  <h2 class="cstitle" style="font-size:24px;">CONTROLS</h2>
+  <div class="cssub">HOW ARE YOU PLAYING?</div>
+  <div class="panel" id="ctrlinfo" style="margin-top:14px; width:min(560px,92vw); pointer-events:auto; text-align:left;">
+    <h3>KEYBOARD (pick your keys, saved to this browser)</h3>
+    <div class="menubtns" style="justify-content:flex-start;">
+      <button class="bigbtn slim alt" id="bindA">SPACE dash · E mower</button>
+      <button class="bigbtn slim alt" id="bindB">SHIFT dash · Q mower</button>
+    </div>
+    <br><h3>TOUCH (automatic on phones and tablets)</h3>
+    Drag anywhere to move · two-finger tap to dash · tap the mower bar to ride.
+    <br><br><h3>CONTROLLER (automatic, works in the Xbox Edge browser)</h3>
+    Left stick moves · A dashes · B or X rides the mower · Start pauses.<br>
+    Extra controllers press A at champ select to join couch co-op.
+  </div>
+  <button class="bigbtn slim" id="ctrlclose" style="margin-top:16px;">DONE</button>
 </div>
 
 <div id="guide" class="overlay hidden">
