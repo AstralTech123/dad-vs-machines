@@ -20,7 +20,15 @@
   .hidden { display:none !important; }
 
   #hud { position:fixed; inset:0; pointer-events:none; z-index:5; }
-  #hpwrap { position:absolute; top:12px; left:14px; width:238px; }
+  /* phone notches and home bars: every edge-hugging element shifts inward
+     by the device's safe area (zero on normal screens) */
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+  #hpwrap { position:absolute; top:calc(12px + var(--sat)); left:calc(14px + var(--sal)); width:238px; }
   #hpbar { height:19px; background:#22271f; border:2px solid #3d4437; border-radius:10px; overflow:hidden; }
   #hpfill { height:100%; width:100%; background:linear-gradient(180deg,#9be06f,#5da13c); transition:width .12s; }
   #hpfill.low { background:linear-gradient(180deg,#ff8a5f,#d64545); animation:pulse .7s infinite; }
@@ -28,26 +36,30 @@
   #hptext { position:absolute; top:8px; left:0; width:238px; text-align:center; font-size:12px;
             font-weight:bold; color:#fff; text-shadow:0 1px 2px #000; }
   #armorchip { margin-top:5px; font-size:12px; color:#cfc8b8; text-shadow:0 1px 2px #000; }
-  #wavewrap { position:absolute; top:8px; left:50%; transform:translateX(-50%); text-align:center; }
+  #wavewrap { position:absolute; top:calc(8px + var(--sat)); left:50%; transform:translateX(-50%); text-align:center; }
   #wavelabel { font-size:11px; letter-spacing:3px; color:#a39c8a; }
   #wavenum { font-size:26px; font-weight:900; color:#f4eeda; text-shadow:0 2px 5px #000; line-height:1; }
   #wavetimer { font-size:19px; font-family:'Courier New',monospace; font-weight:bold; color:#ffd166;
                text-shadow:0 2px 4px #000; }
-  #matwrap { position:absolute; top:12px; right:14px; text-align:right; }
+  #matwrap { position:absolute; top:calc(12px + var(--sat)); right:calc(14px + var(--sar)); text-align:right; }
   #matcount { font-size:21px; font-weight:bold; color:#9be06f; text-shadow:0 2px 4px #000; }
   #killcount { font-size:11px; color:#a39c8a; margin-top:2px; }
-  #slotwrap { position:absolute; bottom:12px; left:14px; display:flex; gap:6px; }
+  #slotwrap { position:absolute; bottom:calc(12px + var(--sab)); left:calc(14px + var(--sal)); display:flex; gap:6px; }
   .slot { width:44px; height:44px; background:rgba(14,17,13,.78); border:2px solid #3a4136;
           border-radius:9px; display:flex; align-items:center; justify-content:center; position:relative; }
   .slot img { width:28px; height:28px; }
   .slot .pips { position:absolute; bottom:1px; left:0; width:100%; text-align:center; font-size:7px; letter-spacing:1px; }
-  #ultwrap { position:absolute; bottom:64px; left:14px; width:200px; height:24px; background:#1c211a;
+  #ultwrap { position:absolute; bottom:calc(64px + var(--sab)); left:calc(14px + var(--sal)); width:200px; height:24px; background:#1c211a;
              border:2px solid #3d4437; border-radius:8px; overflow:hidden; pointer-events:auto; cursor:pointer; }
   #ultfill { height:100%; width:0%; background:linear-gradient(180deg,#ffd97a,#e0762e); transition:width .2s; }
   #ulttext { position:absolute; top:3px; left:0; width:100%; text-align:center; font-size:11px;
              font-weight:bold; letter-spacing:1px; color:#fff; text-shadow:0 1px 2px #000; }
   #ultwrap.ready { border-color:#ffd166; animation:pulse .6s infinite; }
-  #btncluster { position:absolute; bottom:12px; right:14px; display:flex; gap:8px; pointer-events:auto; }
+  #btncluster { position:absolute; bottom:calc(12px + var(--sab)); right:calc(14px + var(--sar)); display:flex; gap:8px; pointer-events:auto; }
+  /* on touch devices the bottom-right belongs to the dash thumb: the pause,
+     mute, and fullscreen cluster moves to the top right under the bolt count */
+  body.touchy #btncluster { bottom:auto; top:calc(64px + var(--sat)); right:calc(10px + var(--sar)); }
+  body.touchy #pcorner2 { top:calc(120px + var(--sat)); }
   #btncluster button { width:42px; height:42px; border-radius:10px; border:1px solid rgba(255,255,255,.14);
           background:rgba(14,17,13,.72); color:#ece7db; font-size:17px; cursor:pointer; }
   #btncluster button:active { transform:translateY(1px); }
@@ -55,12 +67,12 @@
      reachable on any screen, and fullscreen can always be exited */
   #btncluster { z-index:40; }
   #fsbtn.fson { background:rgba(255,209,102,.35); }
-  #dashbtn { position:absolute; bottom:70px; right:14px; width:64px; height:64px; border-radius:50%;
+  #dashbtn { position:absolute; bottom:calc(70px + var(--sab)); right:calc(14px + var(--sar)); width:64px; height:64px; border-radius:50%;
              border:2px solid rgba(255,255,255,.25); background:rgba(79,129,176,.4); color:#fff;
              font-weight:bold; font-size:12px; pointer-events:auto; cursor:pointer; display:block; }
-  #hintline { position:absolute; bottom:60px; right:16px; font-size:10px; color:rgba(236,231,219,.4); }
+  #hintline { position:absolute; bottom:calc(60px + var(--sab)); right:calc(16px + var(--sar)); font-size:10px; color:rgba(236,231,219,.4); }
   body.touchy #hintline { display:none; }
-  #bosswrap { position:absolute; top:74px; left:50%; transform:translateX(-50%); width:min(560px,82vw); display:none; }
+  #bosswrap { position:absolute; top:calc(74px + var(--sat)); left:50%; transform:translateX(-50%); width:min(560px,82vw); display:none; }
   #bosslabel { text-align:center; font-size:11px; letter-spacing:5px; color:#ff5a5f; margin-bottom:3px;
                text-shadow:0 0 8px rgba(255,90,95,.8); }
   #bossbar { height:12px; background:#241318; border:2px solid #5c2a30; border-radius:8px; overflow:hidden; }
@@ -240,9 +252,9 @@
   .cofill { height:100%; border-radius:4px; }
   .pcorner { display:none; position:fixed; z-index:5; background:rgba(10,12,10,.6);
              border:2px solid #333a30; border-radius:11px; padding:6px 9px; pointer-events:none; }
-  #pcorner2 { top:64px; right:14px; }
-  #pcorner3 { bottom:110px; left:14px; }
-  #pcorner4 { bottom:150px; right:14px; }
+  #pcorner2 { top:calc(64px + var(--sat)); right:calc(14px + var(--sar)); }
+  #pcorner3 { bottom:calc(110px + var(--sab)); left:calc(14px + var(--sal)); }
+  #pcorner4 { bottom:calc(150px + var(--sab)); right:calc(14px + var(--sar)); }
   .goodbadge { font-size:9px; letter-spacing:1px; color:#9be06f; font-weight:bold; }
   .owned { font-size:9px; letter-spacing:1px; color:#e0a34d; font-weight:bold; }
   @keyframes yardglow { 0%,100%{ color:#7c8272; } 50%{ color:#ffd166; } }
