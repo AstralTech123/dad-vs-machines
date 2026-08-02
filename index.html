@@ -227,12 +227,31 @@
   .lobslot { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:bold;
              color:#f4eeda; background:#191d17; border:2px solid #333a30; border-radius:9px; padding:4px 9px; }
   .lobslot img { width:26px; height:26px; image-rendering:pixelated; }
-  #cobars { margin-top:5px; }
-  .cobar { display:flex; align-items:center; gap:6px; margin-top:3px; }
-  .coname { font-size:10px; font-weight:bold; letter-spacing:.5px; text-shadow:0 1px 3px #000; }
-  .cotrack { width:110px; height:7px; background:rgba(0,0,0,.5); border-radius:4px; overflow:hidden; }
+  .cotrack { width:110px; height:7px; background:rgba(0,0,0,.5); border-radius:4px; overflow:hidden; margin-top:2px; }
   .cofill { height:100%; border-radius:4px; }
-  .codown { font-size:9px; color:#ff5a5f; font-weight:bold; letter-spacing:1px; }
+  .pcorner { display:none; position:fixed; z-index:5; background:rgba(10,12,10,.6);
+             border:2px solid #333a30; border-radius:11px; padding:6px 9px; pointer-events:none; }
+  #pcorner2 { top:64px; right:14px; }
+  #pcorner3 { bottom:110px; left:14px; }
+  #pcorner4 { bottom:110px; right:14px; }
+  .pcrow { display:flex; gap:8px; align-items:center; }
+  .pcrow img { width:36px; height:36px; image-rendering:pixelated; }
+  .pcname { font-size:10px; font-weight:bold; letter-spacing:.5px; text-shadow:0 1px 3px #000; }
+  .pcbolts { font-size:9px; color:#c9c2a8; margin-top:2px; }
+  .pbadge { position:absolute; top:4px; right:4px; font-size:9px; font-weight:bold; color:#141810;
+            border-radius:5px; padding:1px 6px; }
+  .champcard { position:relative; }
+  #lvlchoices.multi { display:flex; gap:12px; align-items:flex-start; grid-template-columns:none; }
+  .lvlcol { flex:1; display:flex; flex-direction:column; gap:8px; border:2px solid transparent;
+            border-radius:12px; padding:8px; min-width:150px; }
+  .lvlhead { font-size:12px; font-weight:bold; letter-spacing:1px; display:flex; align-items:center;
+             justify-content:center; gap:6px; }
+  .lvlhead img { width:24px; height:24px; image-rendering:pixelated; }
+  .lvlcard.cur { border-color:#ffd166; transform:translateY(-2px); }
+  .lvlcard.chosen { border-color:#9be06f; }
+  .lvlcard.locked { opacity:.55; cursor:default; }
+  .lvlcard.locked:hover { transform:none; border-color:#4a5044; }
+  .lvlcard.chosen:hover { border-color:#9be06f; }
   #buyfor { display:none; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; }
   .bflabel { font-size:10px; letter-spacing:2px; color:#7c8272; }
   .bfchip { display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:12px;
@@ -264,8 +283,10 @@
     <div id="hptext">50 / 50</div>
     <div id="armorchip"></div>
     <div id="lvlchip"></div>
-    <div id="cobars"></div>
   </div>
+  <div class="pcorner" id="pcorner2"></div>
+  <div class="pcorner" id="pcorner3"></div>
+  <div class="pcorner" id="pcorner4"></div>
   <div id="wavewrap">
     <div id="wavelabel">WAVE</div>
     <div id="wavenum">1</div>

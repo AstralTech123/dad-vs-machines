@@ -23,7 +23,7 @@ function mkPlayer(pad,champ){
       dashCd:0, dashT:0, ddx:1, ddy:0, bvx:0, bvy:0, mowT:0, ult:0, trampCd:0, champ:champ||'dad' },
     weapons:[ mkWeapon('stapler',1) ],
     itemCounts:{}, abil:{},
-    reviveT:0,
+    reviveT:0, earned:0,
   };
 }
 /* the whole codebase reads G.player/G.stats/G.hp/...; those are ALIASES to
@@ -152,10 +152,13 @@ function updatePads(){
       st.edge[i]=p&&!st.pressed[i];
       st.pressed[i]=p;
     }
-    /* dpad-as-axis fallback for champ cycling */
+    /* dpad-or-stick flicks for menu navigation */
     st.edgeLeft = st.edge[14] || (x<-0.6&&!st.axHeld&&(st.axHeld='l')&&true);
     st.edgeRight= st.edge[15] || (x>0.6&&!st.axHeld&&(st.axHeld='r')&&true);
     if(Math.abs(x)<0.4) st.axHeld=null;
+    st.edgeUp   = st.edge[12] || (y<-0.6&&!st.ayHeld&&(st.ayHeld='u')&&true);
+    st.edgeDown = st.edge[13] || (y>0.6&&!st.ayHeld&&(st.ayHeld='d')&&true);
+    if(Math.abs(y)<0.4) st.ayHeld=null;
   }
 }
 function padOwner(idx){ return G.players.find(p=>p.pad===idx); }
@@ -176,6 +179,19 @@ function handlePadsGame(){
       if(st.mag>0.18){ PAD.active=true; PAD.x=st.x; PAD.y=st.y; break; }
     }
   }
+}
+/* controller players pick their level-up on their own column */
+function handlePadsLevelup(){
+  if(!G.lvlState) return;
+  if(document.getElementById('levelup').classList.contains('hidden')) return;
+  G.players.forEach((pl,i)=>{
+    if(pl.pad===null) return;
+    const st=PADS[pl.pad]; if(!st) return;
+    const ls=G.lvlState[i]; if(!ls||ls.done) return;
+    if(st.edgeUp){ ls.cursor=(ls.cursor+ls.picks.length-1)%ls.picks.length; sfx.click(); renderLevelUp(); }
+    if(st.edgeDown){ ls.cursor=(ls.cursor+1)%ls.picks.length; sfx.click(); renderLevelUp(); }
+    if(st.edge[0]) chooseLevelUp(i,ls.cursor);
+  });
 }
 function handlePadsLobby(){
   const open=!document.getElementById('champsel').classList.contains('hidden');
@@ -264,6 +280,7 @@ function loop(now){
   updatePads();
   handlePadsGame();
   handlePadsLobby();
+  handlePadsLevelup();
   if(AC) setTrack(G.mode==='menu'?'menu':'game');
   updateFlies(dt);
   if(G.mode==='menu'){ updateDecor(dt); G.players[0].body.bob+=dt*3; SPRINK.a+=0.75*dt; }

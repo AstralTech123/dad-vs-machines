@@ -37,7 +37,10 @@ function simTick(dt){
     updateParts(0.5); updateTexts(0.5); updateWaveFlow(dt);
   } else if(G.mode==='shop'){
     if(!document.getElementById('levelup').classList.contains('hidden')){
-      const c=document.querySelector('.lvlcard'); if(c) c.click();
+      if(G.lvlState){
+        G.lvlState.forEach((ls,i)=>{ if(!ls.done) chooseLevelUp(i,Math.floor(Math.random()*ls.picks.length)); });
+        advanceLevelUp();
+      }
     } else {
       let guard=0, bought=true;
       while(bought && guard++<12){

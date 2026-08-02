@@ -1010,7 +1010,7 @@ function updatePickups(dt){
       if(d<24){
         G.pickups.splice(i,1);
         const prev=G.active; saveActive(); setActive(tp);
-        if(p.kind==='bolt'){ G.mats++; G.totalMats++; if(G.contract&&G.contract.def.key==='bolts') G.contract.prog++; sfx.pickup(); }
+        if(p.kind==='bolt'){ G.mats++; G.totalMats++; tp.earned=(tp.earned||0)+1; if(G.contract&&G.contract.def.key==='bolts') G.contract.prog++; sfx.pickup(); }
         else if(p.kind==='burger'){
           if(G.contract&&G.contract.def.key==='burger') G.contract.prog++;
           const heal=Math.round((p.val+(G.yard.grill>=2?10:0))*G.stats.burgerMul);
@@ -1020,7 +1020,7 @@ function updatePickups(dt){
           sfx.munch();
         }
         else if(p.kind==='crate'){
-          G.mats+=p.val; G.totalMats+=p.val;
+          G.mats+=p.val; G.totalMats+=p.val; tp.earned=(tp.earned||0)+p.val;
           floatText(P.x,P.y-44,'+'+p.val+' 🔩','#ffd166',true);
           for(let k=0;k<8;k++) spawnPart(p.x,p.y,rand(0,TAU),rand(60,200),0.4,'#c9a06a',3);
           sfx.buy();
@@ -1335,7 +1335,7 @@ function renderShop(){
     bf.style.display='flex';
     bf.innerHTML='<span class="bflabel">BUYING FOR</span>'+G.players.map((pl,i)=>
       `<div class="bfchip${i===G.shopFor?' sel':''}" data-i="${i}" style="border-color:${i===G.shopFor?PCOLORS[i]:'#333a30'}">`+
-      `<img src="${champPortrait(pl.champ)}" alt=""><span>P${i+1} ${CHAMPS[pl.champ].name}</span></div>`).join('');
+      `<img src="${champPortrait(pl.champ)}" alt=""><span>P${i+1} ${CHAMPS[pl.champ].name} · 🔩${pl.earned||0} collected</span></div>`).join('');
     bf.querySelectorAll('.bfchip').forEach(ch=> ch.addEventListener('click',()=>switchShopFor(Number(ch.dataset.i))));
   } else { bf.style.display='none'; bf.innerHTML=''; }
   const box=document.getElementById('offers'); box.innerHTML='';

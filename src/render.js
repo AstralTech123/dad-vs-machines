@@ -23,17 +23,29 @@ function updateHUD(){
   if(P.mowT>0){ ut.textContent='MOWING'; uw.className=''; }
   else if(P.ult>=un){ ut.textContent='🚜 MOWER READY (E)'; uw.className='ready'; }
   else { ut.textContent='MOWER '+P.ult+'/'+un; uw.className=''; }
-  const cb=document.getElementById('cobars');
-  if(G.players.length>1){
-    cb.style.display='block';
-    cb.innerHTML=G.players.slice(1).map((pl,ix)=>{
-      const i=ix+1;
-      const fr=clamp(((G.active===pl)?G.hp:pl.hp)/pl.stats.maxHP,0,1);
-      return `<div class="cobar"><span class="coname" style="color:${PCOLORS[i]}">P${i+1} ${CHAMPS[pl.champ].name}</span>`+
-        `<div class="cotrack"><div class="cofill" style="width:${fr*100}%;background:${pl.body.dead?'#555':PCOLORS[i]}"></div></div>`+
-        `${pl.body.dead?'<span class="codown">DOWN</span>':''}</div>`;
-    }).join('');
-  } else { cb.style.display='none'; cb.innerHTML=''; }
+  /* co-op: P2-P4 each own a corner panel with their model, HP, and haul */
+  for(let i=1;i<4;i++){
+    const el=document.getElementById('pcorner'+(i+1));
+    if(!el) continue;
+    const pl=G.players[i];
+    if(!pl || G.mode==='menu'){ el.style.display='none'; el._champ=null; continue; }
+    el.style.display='block';
+    if(el._champ!==pl.champ){
+      el._champ=pl.champ;
+      el.style.borderColor=PCOLORS[i];
+      el.innerHTML=`<div class="pcrow"><img src="${champPortrait(pl.champ)}" alt="">`+
+        `<div class="pcinfo"><div class="pcname" style="color:${PCOLORS[i]}"></div>`+
+        `<div class="cotrack"><div class="cofill"></div></div>`+
+        `<div class="pcbolts"></div></div></div>`;
+    }
+    const hp=(G.active===pl)?G.hp:pl.hp;
+    const fr=clamp(hp/pl.stats.maxHP,0,1);
+    el.querySelector('.pcname').textContent='P'+(i+1)+' '+CHAMPS[pl.champ].name+(pl.body.dead?' · DOWN':'');
+    const cf=el.querySelector('.cofill');
+    cf.style.width=(fr*100)+'%';
+    cf.style.background=pl.body.dead?'#555':PCOLORS[i];
+    el.querySelector('.pcbolts').textContent='🔩 '+(pl.earned||0)+' collected';
+  }
   document.getElementById('lvlchip').textContent='LV '+(G.level||1)+' · '+Math.floor(G.xp||0)+'/'+xpNeed(G.level||1)+' XP';
   const cl=document.getElementById('contractline');
   if(G.contract){
@@ -73,25 +85,67 @@ document.getElementById('favorbtn').addEventListener('click',()=>{
 });
 function showLevelUp(){
   show('levelup');
-  document.getElementById('lvlsub').textContent='PICK AN UPGRADE'+(G.pendingLvls>1?' ('+G.pendingLvls+' BANKED)':'');
-  const box=document.getElementById('lvlchoices'); box.innerHTML='';
-  const pool=[...LEVEL_UPS], picks=[];
-  for(let i=0;i<4&&pool.length;i++) picks.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
-  for(const u of picks){
-    const el=document.createElement('div');
-    el.className='lvlcard';
-    el.innerHTML=`<div class="lt">${u.t}</div><div class="ld">${u.d}</div>`;
-    el.addEventListener('click',()=>{
-      /* the whole couch levels together: one pick, everyone gets it */
-      const prev=G.active; saveActive();
-      for(const pl of G.players){ setActive(pl); u.a(G.stats); saveActive(); }
-      setActive(prev||G.players[0]);
-      sfx.buy(); G.pendingLvls--; updateHUD();
-      if(G.pendingLvls>0) showLevelUp();
-      else { hide('levelup'); openShop(); }
+  document.getElementById('lvlsub').textContent=
+    (G.players.length>1?'EVERYONE PICKS THEIR OWN UPGRADE':'PICK AN UPGRADE')+
+    (G.pendingLvls>1?' ('+G.pendingLvls+' BANKED)':'');
+  /* every player rolls their own four options and picks simultaneously:
+     P1 clicks, controller players use dpad + A on their column */
+  G.lvlState=G.players.map(()=>{
+    const pool=[...LEVEL_UPS], picks=[];
+    for(let i=0;i<4&&pool.length;i++) picks.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+    return { picks, cursor:0, done:false, chosen:-1 };
+  });
+  renderLevelUp();
+}
+function renderLevelUp(){
+  const box=document.getElementById('lvlchoices');
+  box.innerHTML='';
+  box.className=G.players.length>1?'multi':'';
+  G.players.forEach((pl,i)=>{
+    const ls=G.lvlState[i];
+    const col=document.createElement('div');
+    col.className='lvlcol';
+    if(G.players.length>1){
+      col.style.borderColor=PCOLORS[i];
+      col.innerHTML=`<div class="lvlhead" style="color:${PCOLORS[i]}">`+
+        `<img src="${champPortrait(pl.champ)}" alt=""> P${i+1} ${CHAMPS[pl.champ].name}${ls.done?' ✔ READY':''}</div>`;
+    }
+    ls.picks.forEach((u,ci)=>{
+      const el=document.createElement('div');
+      el.className='lvlcard'
+        +(pl.pad!==null && ci===ls.cursor && !ls.done ? ' cur':'')
+        +(ls.done && ci===ls.chosen ? ' chosen':'')
+        +(ls.done ? ' locked':'');
+      el.innerHTML=`<div class="lt">${u.t}</div><div class="ld">${u.d}</div>`;
+      if(!ls.done) el.addEventListener('click',()=>chooseLevelUp(i,ci));
+      col.appendChild(el);
     });
-    box.appendChild(el);
-  }
+    box.appendChild(col);
+  });
+}
+function chooseLevelUp(i,ci){
+  const ls=G.lvlState&&G.lvlState[i];
+  if(!ls||ls.done) return;
+  const pl=G.players[i], u=ls.picks[ci];
+  const prev=G.active; saveActive(); setActive(pl);
+  u.a(G.stats); saveActive();
+  setActive(prev&&G.players.includes(prev)?prev:G.players[0]);
+  ls.done=true; ls.chosen=ci;
+  sfx.buy(); updateHUD();
+  if(G.lvlState.every(s=>s.done)){
+    G.pendingLvls--;
+    const seq=(G.lvlSeq=(G.lvlSeq||0)+1);
+    setTimeout(()=>{ if(G.lvlSeq===seq) advanceLevelUp(); },450);
+    renderLevelUp();
+  } else renderLevelUp();
+}
+/* moves past a fully-picked level-up screen; the timer calls this after a
+   short beat, and the simulator calls it directly */
+function advanceLevelUp(){
+  if(!G.lvlState || !G.lvlState.every(s=>s.done)) return;
+  G.lvlSeq=(G.lvlSeq||0)+1;
+  if(G.pendingLvls>0) showLevelUp();
+  else { G.lvlState=null; hide('levelup'); openShop(); }
 }
 function renderSlots(){
   const box=document.getElementById('slotwrap'); box.innerHTML='';
@@ -139,6 +193,7 @@ function statsHTML(full){
     const c=CHAMPS[G.champ];
     if(c&&c.perk) rows.push('★ '+c.perkDesc);
     rows.push('🚜 Mower ultimate: kills charge it ('+G.player.ult+'/'+st.ultNeed+'). Press E or tap the bar when full.');
+    rows.push('🔩 Bolts collected this run: '+(G.active&&G.active.earned||0)+' (the wallet is shared, this is your contribution)');
     for(const k in G.itemCounts){ const it=ITEMS[k]; if(it&&it.ability) rows.push(it.icon+' '+it.name+': '+it.note); }
     for(const k in G.yard){ if(G.yard[k]>0) rows.push(YARD_UPGRADES[k].icon+' '+yardName(k)+' Lv'+G.yard[k]); }
     const inv=Object.entries(G.itemCounts).map(([k,n])=> ITEMS[k]? ITEMS[k].icon+(n>1?'×'+n:'') : '').join(' ');
@@ -286,6 +341,7 @@ function buildChampSelect(){
     const c=CHAMPS[key];
     const el=document.createElement('div');
     el.className='champcard'+(key===selChamp?' sel':'');
+    el.dataset.key=key;
     el.innerHTML=`<img class="cpimg" src="${champPortrait(key)}" alt=""><div class="cpname">${c.name}</div>`+
       `<div class="cprole ${c.role.toLowerCase().replace(/[^a-z]/g,'')}">${c.role}</div>`;
     el.addEventListener('click',()=>{ if(selChamp!==key){ selChamp=key; sfx.click(); buildChampSelect(); } });
@@ -356,6 +412,25 @@ function renderLobby(){
   bar.innerHTML=html;
   bar.querySelectorAll('.lobslot').forEach((el,ix)=>
     el.addEventListener('click',()=>{ LOBBY.splice(ix,1); sfx.click(); renderLobby(); }));
+  updateGridBadges();
+}
+/* joined controller players mark their champ card on the grid in their color */
+function updateGridBadges(){
+  const champKeys=Object.keys(CHAMPS);
+  document.querySelectorAll('#champgrid .champcard').forEach(el=>{
+    el.querySelectorAll('.pbadge').forEach(b=>b.remove());
+    el.style.boxShadow='';
+  });
+  LOBBY.forEach((l,ix)=>{
+    const key=champKeys[l.champIdx], i=ix+1;
+    const card=document.querySelector('#champgrid .champcard[data-key="'+key+'"]');
+    if(!card) return;
+    const b=document.createElement('div');
+    b.className='pbadge'; b.textContent='P'+(i+1);
+    b.style.background=PCOLORS[i];
+    card.appendChild(b);
+    card.style.boxShadow='0 0 0 2px '+PCOLORS[i]+', 0 0 14px '+PCOLORS[i];
+  });
 }
 document.getElementById('champstart').addEventListener('click',()=>{ sfx.click(); hide('champsel'); beginRun(); });
 document.getElementById('retrybtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('dead'); beginRun(); });
