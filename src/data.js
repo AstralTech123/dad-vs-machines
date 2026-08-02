@@ -45,6 +45,24 @@ const RARITY = {
   4:{ name:'EPIC',      color:'#c48df0', w:5 },
   5:{ name:'LEGENDARY', color:'#ffd166', w:1 },
 };
+/* stack caps by rarity: at the cap an item stops appearing in your shop */
+const RARITY_CAP={ 1:6, 2:5, 3:4, 4:3, 5:1 };
+/* which stats each role loves, for the GOOD FOR YOU shop badge */
+const ROLE_STATS={
+  TANK:['maxHP','armor','regen','thorns','lifesteal','burgerMul'],
+  MELEE:['meleeMul','move','atk'],
+  RANGED:['rangedMul','crit','critMul','rangeMul'],
+  CASTER:['blastMul','areaMul'],
+  SUPPORT:['luck','pickup'],
+  'ALL-ROUNDER':['dmg','atk'],
+};
+function goodForChamp(champ,it){
+  const c=CHAMPS[champ]; if(!c) return false;
+  const st=it.stats||{};
+  if(c.wpref && st[c.wpref+'Mul']>0) return true;
+  const wants=ROLE_STATS[c.role]||[];
+  return Object.keys(st).some(k=> wants.includes(k) && st[k]>0);
+}
 const ITEMS = {
   /* commons: one honest stat */
   chair:    { name:'Ergonomic Chair', icon:'💺', rar:1, price:10, stats:{maxHP:6}, note:'Lumbar support is life support.' },

@@ -1196,8 +1196,8 @@ function tierRoll(){
 }
 function priceOf(kind,key,tier){
   if(kind==='w')
-    return Math.max(1, Math.round(WEAPONS[key].price * TIER[tier].priceMul * (1+0.09*(G.wave-1)) * G.stats.priceMul));
-  return Math.max(1, Math.round(ITEMS[key].price * (1+0.06*(G.wave-1)) * G.stats.priceMul));
+    return Math.max(1, Math.round(WEAPONS[key].price * TIER[tier].priceMul * (1+0.14*(G.wave-1)) * G.stats.priceMul));
+  return Math.max(1, Math.round(ITEMS[key].price * (1+0.12*(G.wave-1)) * G.stats.priceMul));
 }
 function rarityRoll(){
   const w=G.wave, lk=1+G.stats.luck;
@@ -1216,22 +1216,50 @@ function rarityRoll(){
 /* every player has their own shelf, rolled with their own luck, class rules,
    and prices, so the whole couch shops simultaneously */
 function shopOfferCount(){ return G.players.length>1 ? 3 : 4; }
+/* an item is pointless for a champ when its ONLY stat is a class damage
+   multiplier for a class they cannot equip */
+function itemUsable(k){
+  const st=ITEMS[k].stats||{};
+  const keys=Object.keys(st);
+  if(keys.length===1){
+    const kk=keys[0];
+    if(kk==='meleeMul' && !champCanUse('melee')) return false;
+    if(kk==='rangedMul' && !champCanUse('ranged')) return false;
+    if(kk==='blastMul' && !champCanUse('blast')) return false;
+  }
+  return true;
+}
 function rollOffersFor(pl){
   const prev=G.active; saveActive(); setActive(pl);
   /* locked offers survive rerolls and carry into the next wave's shop */
   const offers=(pl.offers||[]).filter(o=>o.locked&&!o.sold);
+  const slotsFull=G.weapons.length>=MAX_SLOTS;
   for(let i=offers.length;i<shopOfferCount();i++){
-    const isWeapon = Math.random()<0.42;
-    const tier=tierRoll();
+    let isWeapon = Math.random()<0.42;
     const pref=(CHAMPS[G.champ]||{}).wpref;
+    if(isWeapon && slotsFull){
+      /* full garage: only offer weapons that can actually combine */
+      const pairable=G.weapons.filter(w=>w.tier<3);
+      if(pairable.length && Math.random()<0.6){
+        const pw=pick(pairable);
+        offers.push({ kind:'w', key:pw.key, tier:pw.tier, price:priceOf('w',pw.key,pw.tier), sold:false });
+        continue;
+      }
+      isWeapon=false; /* nothing combinable: sell them an item instead */
+    }
     if(isWeapon){
+      const tier=tierRoll();
       const wpool=Object.keys(WEAPONS).filter(k=>champCanUse(WEAPONS[k].cls));
       const key=wpick(wpool.map(k=>[k, WEAPONS[k].cls===pref?3:1]));
       offers.push({ kind:'w', key, tier, price:priceOf('w',key,tier), sold:false });
     } else {
       const rar=rarityRoll();
-      let pool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar===rar && !(rar===5 && G.itemCounts[k]));
-      if(!pool.length) pool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar===1);
+      /* respect stack caps and skip items this champ cannot use at all */
+      const open=k=> (G.itemCounts[k]||0) < RARITY_CAP[ITEMS[k].rar] && itemUsable(k);
+      let pool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar===rar && open(k));
+      if(!pool.length) pool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar<=2 && open(k));
+      if(!pool.length) pool=Object.keys(ITEMS).filter(open);
+      if(!pool.length) pool=Object.keys(ITEMS);
       const key=wpick(pool.map(k=>{
         const st=ITEMS[k].stats||{};
         return [k, (pref && st[pref+'Mul'])?3:1];
@@ -1253,6 +1281,8 @@ function openShop(){
   for(const pl of G.players){ pl.rerolls=0; pl.shopCur=0; rollOffersFor(pl); }
   saveActive(); setActive(G.players[0]);
   renderShop(); show('shop');
+  if(Object.keys(YARD_UPGRADES).some(k=>{ const c=yardCost(k); return c!==null && G.mats>=c; }))
+    toast('💡 The '+(MAPKEY==='office'?'office facilities':'yard')+' could use an upgrade (right panel)');
 }
 function canBuyFor(pl,o){
   const prev=G.active; saveActive(); setActive(pl);
@@ -1273,7 +1303,8 @@ function sellWeapon(pl,i){
 }
 function yardCost(key){
   const lvl=G.yard[key], u=YARD_UPGRADES[key];
-  return lvl>=u.costs.length ? null : Math.max(1,Math.round(u.costs[lvl]*G.stats.priceMul));
+  if(lvl>=u.costs.length) return null;
+  return Math.max(1,Math.round(u.costs[lvl]*(1+0.10*(G.wave-1))*G.stats.priceMul));
 }
 function buyYard(key){
   const cost=yardCost(key);
@@ -1387,7 +1418,11 @@ function offerCard(pl,pi,o,i,small){
       const cf=STAT_FMT[o.curse[0]];
       desc+=`<br><span style="color:#ff5a5f">CURSE: ${cf?cf(o.curse[1]):o.curse[0]+' '+o.curse[1]}</span>`;
     }
-    tierHTML=`<div class="ctier" style="color:${o.curse?'#ff5a5f':r.color}">${o.curse?'CURSED '+r.name:r.name}</div>`;
+    const owned=pl.itemCounts[o.key]||0;
+    const cap=RARITY_CAP[d.rar];
+    tierHTML=`<div class="ctier" style="color:${o.curse?'#ff5a5f':r.color}">${o.curse?'CURSED '+r.name:r.name}</div>`
+      +(goodForChamp(pl.champ,d)?'<div class="goodbadge">★ GOOD FOR YOU</div>':'')
+      +(owned?`<div class="owned">OWNED ×${owned} of ${cap}</div>`:'');
     cls=(o.curse?'cursed ':'')+'r'+o.tier;
   }
   const div=document.createElement('div');
@@ -1439,7 +1474,12 @@ function renderShop(){
       col.appendChild(rb);
       const gr=document.createElement('div');
       gr.className='colgarage';
-      gr.innerHTML='<span class="glabel">GARAGE</span> '+garageHTML(pl);
+      const inv=Object.entries(pl.itemCounts).map(([k,n])=>
+        ITEMS[k]? `<span title="${ITEMS[k].name} ×${n}">${ITEMS[k].icon}${n>1?'×'+n:''}</span>`:'').join(' ');
+      const cch=CHAMPS[pl.champ];
+      const wnote=cch.wonly? cch.wonly.map(s=>s.toUpperCase()).join('+')+' ONLY' : cch.wpref? 'likes '+cch.wpref.toUpperCase() : 'any weapon';
+      gr.innerHTML='<span class="glabel">GARAGE ('+wnote+')</span> '+garageHTML(pl)
+        +(inv?'<br><span class="glabel">ITEMS</span> '+inv:'');
       gr.querySelectorAll('.sellbtn').forEach(b=>
         b.addEventListener('click',()=>sellWeapon(pl,Number(b.dataset.i))));
       col.appendChild(gr);
@@ -1459,7 +1499,7 @@ function renderShop(){
   sp.style.display=coop?'none':'';
   wpn.style.display=coop?'none':'';
   if(!coop){
-    sp.innerHTML=statsHTML();
+    sp.innerHTML=statsHTML(true);
     const pl=G.players[0];
     wpn.innerHTML=`<h3>GARAGE (${pl.weapons.length}/${MAX_SLOTS} slots)</h3>
       ${garageHTML(pl)}<br>Buy two of the same weapon + tier and they combine. Selling pays half.`;
@@ -1478,9 +1518,13 @@ function renderShop(){
   document.querySelectorAll('#yardpanel .yardbtn').forEach(b=>
     b.addEventListener('click',()=>buyYard(b.dataset.k)));
   const fb=document.getElementById('favorbtn');
-  fb.disabled = !!(G.shop.favorUsed||G.favorNext);
+  const favReady = G.wave >= (G.favorNextWave||0);
+  fb.disabled = !!(G.shop.favorUsed||G.favorNext||!favReady);
   fb.textContent = G.favorNext ? '📞 '+CHAMPS[G.favorNext].name+' is coming'
+    : !favReady ? '📞 Neighbors busy until wave '+G.favorNextWave
     : G.shop.favorUsed ? '📞 Nobody else is home' : '📞 CALL A NEIGHBOR (free)';
+  const yp2=document.getElementById('yardpanel');
+  yp2.classList.toggle('afford', Object.keys(YARD_UPGRADES).some(k=>{ const c=yardCost(k); return c!==null && G.mats>=c; }));
 }
 document.getElementById('rerollbtn').addEventListener('click',()=>rerollFor(G.players[0]));
 document.getElementById('gowave').addEventListener('click',()=>{ sfx.click(); startWave(G.wave+1); });

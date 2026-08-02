@@ -56,7 +56,7 @@ function newGame(){
     diff:2, endless:false,
     xp:0, level:1, pendingLvls:0,
     yard:{ grill:0, sprink:0, tramp:0, mower:0, pool:0 },
-    favorNext:null, favorApplied:null, contract:null,
+    favorNext:null, favorApplied:null, favorNextWave:0, contract:null,
     gnomes:[], otT:0,
     mats:0, kills:0, totalMats:0,
     players:[], active:null, shopFor:0,
@@ -263,6 +263,7 @@ document.getElementById('pausebtn').addEventListener('click',()=>{ sfx.click(); 
 document.getElementById('mutebtn').addEventListener('click',()=>{ toggleMute(); });
 document.getElementById('ultwrap').addEventListener('click',()=>{ setActive(G.players[0]); tryMow(); saveActive(); });
 document.getElementById('dashbtn').addEventListener('touchstart',(e)=>{ e.preventDefault(); setActive(G.players[0]); tryDash(); saveActive(); },{passive:false});
+document.getElementById('dashbtn').addEventListener('click',()=>{ setActive(G.players[0]); tryDash(); saveActive(); });
 
 /* ---------------- downed teammates + revives ---------------- */
 function updateRevives(dt){

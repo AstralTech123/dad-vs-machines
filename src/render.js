@@ -72,7 +72,9 @@ function buildFavorPick(){
     el.innerHTML=`<img src="${champPortrait(k)}" alt=""><div class="fname">${CHAMPS[k].name}</div>`+
       `<div class="fdesc">${FAVORS[k].desc}</div>`;
     el.addEventListener('click',()=>{
-      G.favorNext=k; G.shop.favorUsed=true; sfx.buy();
+      G.favorNext=k; G.shop.favorUsed=true;
+      G.favorNextWave=G.wave+3; /* neighbors need a break: one call every 3 waves */
+      sfx.buy();
       box.classList.add('hidden'); renderShop();
     });
     box.appendChild(el);
@@ -80,7 +82,7 @@ function buildFavorPick(){
   box.classList.remove('hidden');
 }
 document.getElementById('favorbtn').addEventListener('click',()=>{
-  if(G.shop.favorUsed||G.favorNext) return;
+  if(G.shop.favorUsed||G.favorNext||G.wave<(G.favorNextWave||0)) return;
   sfx.click(); buildFavorPick();
 });
 function showLevelUp(){
@@ -191,6 +193,11 @@ function statsHTML(full){
   if(full){
     const rows=[];
     const c=CHAMPS[G.champ];
+    if(c){
+      rows.push('🎯 '+(c.wonly
+        ? 'Uses '+c.wonly.map(s=>s.toUpperCase()).join(' + ')+' weapons ONLY. Other class damage stats do nothing for you.'
+        : c.wpref ? 'Prefers '+c.wpref.toUpperCase()+' weapons (bonus class damage).' : 'Uses any weapon.'));
+    }
     if(c&&c.perk) rows.push('★ '+c.perkDesc);
     rows.push('🚜 Mower ultimate: kills charge it ('+G.player.ult+'/'+st.ultNeed+'). Press E or tap the bar when full.');
     rows.push('🔩 Bolts collected this run: '+(G.active&&G.active.earned||0)+' (the wallet is shared, this is your contribution)');
@@ -276,6 +283,23 @@ document.getElementById('quitbtn').addEventListener('click',()=>{ sfx.click(); h
 document.getElementById('pguidebtn').addEventListener('click',()=>{ sfx.click(); buildGuide(); show('guide'); });
 document.getElementById('mguidebtn').addEventListener('click',()=>{ initAudio(); sfx.click(); buildGuide(); show('guide'); });
 document.getElementById('guideclose').addEventListener('click',()=>{ sfx.click(); hide('guide'); });
+/* fullscreen: one toggle, reachable on every screen, always exitable */
+document.getElementById('fsbtn').addEventListener('click',()=>{
+  sfx.click();
+  if(document.fullscreenElement){
+    if(document.exitFullscreen) document.exitFullscreen();
+  } else {
+    const d=document.documentElement;
+    if(d.requestFullscreen){
+      d.requestFullscreen().catch(()=>toast('Fullscreen blocked here. On iPhone: Share → Add to Home Screen.'));
+    } else {
+      toast('Fullscreen not supported here. On iPhone: Share → Add to Home Screen.');
+    }
+  }
+});
+document.addEventListener('fullscreenchange',()=>{
+  document.getElementById('fsbtn').classList.toggle('fson', !!document.fullscreenElement);
+});
 function markBindBtns(){
   document.getElementById('bindA').className='bigbtn slim'+(BINDS.dash===' '?'':' alt');
   document.getElementById('bindB').className='bigbtn slim'+(BINDS.dash==='shift'?'':' alt');

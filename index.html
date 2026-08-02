@@ -45,10 +45,13 @@
   #btncluster button { width:42px; height:42px; border-radius:10px; border:1px solid rgba(255,255,255,.14);
           background:rgba(14,17,13,.72); color:#ece7db; font-size:17px; cursor:pointer; }
   #btncluster button:active { transform:translateY(1px); }
+  /* the cluster floats above every overlay so mute and fullscreen are
+     reachable on any screen, and fullscreen can always be exited */
+  #btncluster { z-index:40; }
+  #fsbtn.fson { background:rgba(255,209,102,.35); }
   #dashbtn { position:absolute; bottom:70px; right:14px; width:64px; height:64px; border-radius:50%;
              border:2px solid rgba(255,255,255,.25); background:rgba(79,129,176,.4); color:#fff;
-             font-weight:bold; font-size:12px; pointer-events:auto; display:none; }
-  body.touchy #dashbtn { display:block; }
+             font-weight:bold; font-size:12px; pointer-events:auto; cursor:pointer; display:block; }
   #hintline { position:absolute; bottom:60px; right:16px; font-size:10px; color:rgba(236,231,219,.4); }
   body.touchy #hintline { display:none; }
   #bosswrap { position:absolute; top:74px; left:50%; transform:translateX(-50%); width:min(560px,82vw); display:none; }
@@ -233,7 +236,11 @@
              border:2px solid #333a30; border-radius:11px; padding:6px 9px; pointer-events:none; }
   #pcorner2 { top:64px; right:14px; }
   #pcorner3 { bottom:110px; left:14px; }
-  #pcorner4 { bottom:110px; right:14px; }
+  #pcorner4 { bottom:150px; right:14px; }
+  .goodbadge { font-size:9px; letter-spacing:1px; color:#9be06f; font-weight:bold; }
+  .owned { font-size:9px; letter-spacing:1px; color:#e0a34d; font-weight:bold; }
+  @keyframes yardglow { 0%,100%{ color:#7c8272; } 50%{ color:#ffd166; } }
+  #yardpanel.afford h3 { animation:yardglow 1.6s ease-in-out infinite; }
   .pcrow { display:flex; gap:8px; align-items:center; }
   .pcrow img { width:36px; height:36px; image-rendering:pixelated; }
   .pcname { font-size:10px; font-weight:bold; letter-spacing:.5px; text-shadow:0 1px 3px #000; }
@@ -334,6 +341,7 @@
   <div id="btncluster">
     <button id="pausebtn" title="Pause">⏸</button>
     <button id="mutebtn" title="Mute">🔊</button>
+    <button id="fsbtn" title="Fullscreen">⛶</button>
   </div>
 </div>
 
