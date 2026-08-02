@@ -13,7 +13,7 @@ function baseStats(){
     critMul:2, priceMul:1, rerollMul:1, dashCdMax:2.5, dashIF:0.35, rangeMul:1,
     areaMul:1, burgerMul:1, grillMul:1, meleeMul:1, rangedMul:1, blastMul:1,
     dodge:0, luck:0, lifesteal:0, thorns:0, auraSlow:0, rage:0,
-    ultNeed:25, mowDur:5 };
+    ultNeed:45, mowDur:5 };
 }
 function mkPlayer(pad,champ){
   return {

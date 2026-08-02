@@ -277,6 +277,14 @@ function updatePlayer(dt){
   }
   P.regenT+=dt;
   if(P.regenT>=4){ P.regenT-=4; if(st.regen>0 && G.hp<st.maxHP){ G.hp=Math.min(st.maxHP,G.hp+st.regen); floatText(P.x,P.y-40,'+'+st.regen,'#9be06f'); updateHUD(); } }
+  // the mower charges on time, not kills
+  if(P.mowT<=0){
+    const need=scaledUltNeed(st);
+    if(P.ult<need){
+      P.ult=Math.min(need,P.ult+dt);
+      if(P.ult>=need && !G.ultToast){ G.ultToast=true; toast('🚜 MOWER READY! Press E'); sfx.combine(); }
+    }
+  }
   // owning a legendary earns you the WoW sparkle
   if(G.hasLegend && Math.random()<dt*4)
     spawnPart(P.x+rand(-14,14), P.y+rand(-22,8), -Math.PI/2+rand(-0.4,0.4), rand(8,26), 0.55, '#ffd166', 2);
@@ -486,10 +494,6 @@ function killEnemy(e){
     }
   }
   const P=G.player;
-  if(P.ult<scaledUltNeed(G.stats)){
-    P.ult++;
-    if(P.ult>=scaledUltNeed(G.stats) && !G.ultToast){ G.ultToast=true; toast('🚜 MOWER READY! Press E'); sfx.combine(); }
-  }
   if(G.contract){
     if(G.contract.def.key==='swarm' && e.key==='swarm') G.contract.prog++;
     if(G.contract.def.key==='mow' && e._byMow) G.contract.prog++;
@@ -1317,7 +1321,7 @@ function buyYard(key){
   G.mats-=cost; G.yard[key]++;
   const lvl=G.yard[key];
   if(key==='grill'&&lvl===1) G.stats.grillMul*=0.65;
-  if(key==='mower'&&lvl===1) G.stats.ultNeed=Math.max(5,G.stats.ultNeed-5);
+  if(key==='mower'&&lvl===1) G.stats.ultNeed=Math.max(15,G.stats.ultNeed-8);
   if(key==='mower'&&lvl===2) G.stats.mowDur+=2;
   toast('🔧 '+yardName(key)+' installed');
   saveActive();
@@ -1380,7 +1384,7 @@ function applyItem(it){
     st[k]+=it.stats[k];
     if(k==='maxHP' && it.stats[k]>0) G.hp+=it.stats[k];
   }
-  st.ultNeed=Math.max(5, st.ultNeed);
+  st.ultNeed=Math.max(15, st.ultNeed);
   st.dashCdMax=Math.max(0.6, st.dashCdMax);
   G.hp=Math.max(1, Math.min(G.hp, st.maxHP));
   if(it.rar===5) G.hasLegend=true;
@@ -1399,7 +1403,7 @@ const STAT_FMT={
   meleeMul:v=>pc(v)+' Melee', rangedMul:v=>pc(v)+' Ranged', blastMul:v=>pc(v)+' Blast',
   rangeMul:v=>pc(v)+' Range', areaMul:v=>pc(v)+' Area', burgerMul:v=>pc(v)+' Burger Heal',
   thorns:v=>sg(v)+' Thorns', dashCdMax:v=>(v>0?'+':'')+v+'s Dash CD',
-  ultNeed:v=>sg(v)+' Mower Kills', mowDur:v=>sg(v)+'s Mower Time',
+  ultNeed:v=>sg(v)+'s Mower Charge', mowDur:v=>sg(v)+'s Mower Time',
   priceMul:v=>pc(v)+' Shop Prices', auraSlow:v=>pc(v)+' Slow Aura',
 };
 function sg(v){ return (v>0?'+':'')+v; }

@@ -90,7 +90,7 @@ const ITEMS = {
   polo:     { name:'Moisture-Wick Polo', icon:'👕', rar:2, price:16, stats:{dodge:0.03, move:8}, note:'Breathable. Elusive.' },
   rakes:    { name:'Matching Rakes', icon:'🧹', rar:2, price:18, stats:{meleeMul:0.12, atk:0.04}, note:'His and yours. Mostly his.' },
   staples:  { name:'Staple Value Pack', icon:'📎', rar:2, price:18, stats:{rangedMul:0.12, atk:0.04}, note:'40,000 count. Family size.' },
-  gascan:   { name:'Spare Gas Can', icon:'⛽', rar:2, price:18, stats:{mowDur:1, ultNeed:-2}, note:'The mower drinks first.' },
+  gascan:   { name:'Spare Gas Can', icon:'⛽', rar:2, price:18, stats:{mowDur:1, ultNeed:-3}, note:'The mower drinks first.' },
   horseshoe:{ name:'Lucky Horseshoe', icon:'🧲', rar:2, price:19, stats:{luck:0.1}, note:'Found it the day everything went right.' },
   coupons:  { name:'Sunday Coupons', icon:'📰', rar:2, price:16, stats:{luck:0.08, pickup:20}, note:'Clipped with surgical precision.' },
   kneepads: { name:'Knee Pads', icon:'🦵', rar:2, price:16, stats:{armor:1, maxHP:5}, note:'For gardening. And glory.' },
@@ -119,7 +119,7 @@ const ITEMS = {
   bifocals: { name:'Prescription Bifocals', icon:'🥽', rar:4, price:52, stats:{crit:0.08, critMul:0.5, rangeMul:0.08}, note:'Sees weak points. And fine print. Everywhere.' },
   grillfork:{ name:'Midnight Grill Fork', icon:'🍴', rar:4, price:52, stats:{lifesteal:0.03, dmg:0.08, blastMul:0.1}, note:'Forged at 2am over open flame.' },
   warranty: { name:'Extended Warranty', icon:'📜', rar:4, price:47, stats:{maxHP:10, armor:1, dodge:0.04, luck:0.08}, note:'For once, it actually paid off.' },
-  mowerkeys:{ name:'Riding Mower Keys', icon:'🔑', rar:4, price:54, stats:{ultNeed:-6, mowDur:2}, note:'The good mower. The forbidden mower.' },
+  mowerkeys:{ name:'Riding Mower Keys', icon:'🔑', rar:4, price:54, stats:{ultNeed:-9, mowDur:2}, note:'The good mower. The forbidden mower.' },
   fridge:   { name:'Garage Mini Fridge', icon:'🧊', rar:4, price:55, stats:{maxHP:6}, ability:'fridge', note:'A cold burger waits at the start of every wave.' },
   bugzap:   { name:'Industrial Bug Zapper', icon:'💡', rar:4, price:55, stats:{}, ability:'zapaura', note:'Machines near you sizzle for 3 damage a second.' },
   /* legendaries: once per run, from wave 5 */
@@ -153,7 +153,7 @@ const EDEFS = {
 const WAVE_DUR = [0,30,35,40,45,50,55,60,65,70,70,70,70,70,70,75,75,75,75,75,80];
 const FINAL_WAVE = 20;
 const MAX_SLOTS = 6;
-const ULT_NEED = 25;
+const ULT_NEED = 45; /* seconds of play to charge the mower */
 const BOSS_WAVES = {5:'algo', 10:'subs', 15:'cloud', 20:'boss'};
 /* boss lookup that keeps working in endless mode: every 5th wave past 20
    brings a random boss back for another round */
@@ -282,11 +282,10 @@ const DIFFS = {
   5:{ name:'ROBOT UPRISING',  desc:'The singularity arrived and it is furious.',   hp:2.2,  dmg:1.8,  rate:1.7,  loot:1.6 },
 };
 const DF=()=>DIFFS[G.diff||2];
-/* mower charge requirement grows with the wave so the ult stays a moment,
-   not a permanent state; upgrades lower the base before scaling */
+/* the mower charges on TIME, not kills, so strong builds cannot loop it;
+   upgrades shave seconds off, floored at 15 */
 function scaledUltNeed(st){
-  const w=Math.max(1,(G&&G.wave)||1);
-  return Math.round((st.ultNeed||ULT_NEED)*(1+0.15*(w-1)));
+  return Math.max(15, st.ultNeed||ULT_NEED);
 }
 
 /* ---------------- chore contracts (optional wave objectives) ---------------- */
@@ -326,8 +325,8 @@ const YARD_UPGRADES = {
     descs:['Bigger launch and longer i-frames','Launching blasts machines away'],
     oname:'Chair Grease', odescs:['Bigger launch and longer i-frames','Launching blasts machines away'] },
   mower: { name:'Mower Tune-Up', icon:'🚜', costs:[25,50],
-    descs:['Mower ready 5 kills sooner','Mower runs 2 seconds longer'],
-    oname:'Floor Buffer Keys', odescs:['Buffer ready 5 kills sooner','Buffer runs 2 seconds longer'] },
+    descs:['Mower charges 8 seconds faster','Mower runs 2 seconds longer'],
+    oname:'Floor Buffer Keys', odescs:['Buffer charges 8 seconds faster','Buffer runs 2 seconds longer'] },
   pool:  { name:'Pool Chemicals', icon:'🏖️', costs:[12,24],
     descs:['Machines slowed much harder in the pool','Machines rust: 4 damage per second in the pool'],
     oname:'Spill Solvent', odescs:['Machines slowed much harder in the spill','Machines corrode: 4 damage per second in the spill'] },

@@ -22,7 +22,7 @@ function updateHUD(){
   const ut=document.getElementById('ulttext');
   if(P.mowT>0){ ut.textContent='MOWING'; uw.className=''; }
   else if(P.ult>=un){ ut.textContent='🚜 MOWER READY (E)'; uw.className='ready'; }
-  else { ut.textContent='MOWER '+P.ult+'/'+un; uw.className=''; }
+  else { ut.textContent='MOWER '+Math.floor(P.ult/un*100)+'%'; uw.className=''; }
   /* co-op: P2-P4 each own a corner panel with their model, HP, and haul */
   for(let i=1;i<4;i++){
     const el=document.getElementById('pcorner'+(i+1));
@@ -277,7 +277,7 @@ function statsHTML(full){
       rows.push('🛒 Shop for: '+[...new Set(wants)].join(', ')+'. Cards marked ★ GOOD FOR YOU fit your build.');
     }
     if(c&&c.perk) rows.push('★ '+c.perkDesc);
-    rows.push('🚜 Mower ultimate: kills charge it ('+G.player.ult+'/'+scaledUltNeed(st)+', more needed each wave). Press E or tap the bar when full.');
+    rows.push('🚜 Mower ultimate: charges over '+scaledUltNeed(st)+' seconds ('+Math.floor(G.player.ult/scaledUltNeed(st)*100)+'% now). Press E or tap the bar when full.');
     rows.push('🔩 Bolts collected this run: '+(G.active&&G.active.earned||0)+' (the wallet is shared, this is your contribution)');
     for(const k in G.itemCounts){ const it=ITEMS[k]; if(it&&it.ability) rows.push(it.icon+' '+it.name+': '+it.note); }
     for(const k in G.yard){ if(G.yard[k]>0) rows.push(YARD_UPGRADES[k].icon+' '+yardName(k)+' Lv'+G.yard[k]); }
@@ -320,7 +320,7 @@ function buildGuide(){
   document.getElementById('guidebody').innerHTML=`
     <h3>CONTROLS</h3>
     <p><span class="sv">WASD</span> or arrows to move · <span class="sv">SPACE</span> dash with i-frames ·
-    <span class="sv">E</span> rides the mower once kills charge it (the bar needs more each wave) · <span class="sv">P</span> pause.<br>
+    <span class="sv">E</span> rides the mower once its bar charges (about 45 seconds, upgrades speed it up) · <span class="sv">P</span> pause.<br>
     Touch: drag anywhere to move, two finger tap to dash, tap the mower bar to ride.<br>
     Controller: left stick moves, <span class="sv">A</span> dashes, <span class="sv">B</span> or <span class="sv">X</span> rides the mower, <span class="sv">Start</span> pauses. Menus use the pointer.<br>
     Couch co-op: up to 4 neighbors. Press <span class="sv">A</span> on a controller at champ select to join, dpad picks your champ.
