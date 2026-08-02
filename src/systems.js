@@ -38,8 +38,8 @@ function tryMow(){
 }
 
 /* ---------------- wave scaling + spawning ---------------- */
-function hpMul(w){ return 1 + 0.38*(w-1) + 0.035*(w-1)*(w-1); }
-function dmgMul(w){ return 1 + 0.15*(w-1); }
+function hpMul(w){ return 1 + 0.35*(w-1) + 0.032*(w-1)*(w-1); }
+function dmgMul(w){ return 1 + 0.14*(w-1); }
 function spdMul(w){ return 1 + 0.02*(w-1); }
 
 function startWave(n){
@@ -165,7 +165,7 @@ function updateSpawning(dt){
   if(G.sub!=='play') return;
   const w=G.wave;
   const ramp = 0.5 + 1.0*(1 - G.waveTime/WAVE_DUR[w]);
-  G.spawnBudget += dt * (1.0 + 0.78*w) * ramp * DF().rate;
+  G.spawnBudget += dt * (1.0 + 0.74*w) * ramp * DF().rate * (w<=2?0.85:1);
   const cap = Math.min(110, 30 + 9*w);
   if(G.enemies.length >= cap) return;
   const avail = Object.keys(EDEFS).filter(k=> EDEFS[k].weight>0 && EDEFS[k].minW<=w);
@@ -612,12 +612,16 @@ function updateEnemies(dt){
         spawnPart(e.x,e.y,0,0,0.15,'flash',e.def.r*1.3);
       }
     } else if(ai==='algo'){
+      bossClock(e,dt);
       updateAlgo(e,dt,a,d);
     } else if(ai==='subs'){
+      bossClock(e,dt);
       updateSubs(e,dt,a,d);
     } else if(ai==='cloud'){
+      bossClock(e,dt);
       updateCloud(e,dt,a,d);
     } else if(ai==='boss'){
+      bossClock(e,dt);
       updateBoss(e,dt,a,d);
     }
     e.x=clamp(e.x,40,ARENA_W-40); e.y=clamp(e.y,40,ARENA_H-40);
@@ -637,7 +641,7 @@ function updateEnemies(dt){
     }
     if(!P.dead && e.contactCd<=0 && d < e.def.r+16 && e.fuse===undefined){
       if(damagePlayer(e.def.dmg*dmgMul(G.wave)*(e.dmg2||1))){
-        e.contactCd=0.8;
+        e.contactCd=1.0;
         e.kx-=Math.cos(a)*140; e.ky-=Math.sin(a)*140;
         if(e.leech && e.hp<e.maxhp){
           e.hp=Math.min(e.maxhp, e.hp+8);
@@ -688,11 +692,23 @@ function updateAlgo(e,dt,a,d){
   const f=document.getElementById('bossfill');
   if(f) f.style.width=(clamp(e.hp/e.maxhp,0,1)*100)+'%';
 }
+/* after 75 seconds every boss enrages: faster, harder hitting, done summoning.
+   Prevents add-spam stalemates where weapons never reach the boss. */
+function bossClock(e,dt){
+  e.age=(e.age||0)+dt;
+  if(e.age>75 && !e.enraged){
+    e.enraged=true;
+    e.spd*=1.6; e.dmg2=(e.dmg2||1)*1.5;
+    floatText(e.x,e.y-e.def.r-20,'ENRAGED','#ff5a5f',true);
+    banner('ENRAGED','FINISH IT OR IT FINISHES YOU');
+    sfx.bossroar();
+  }
+}
 function updateSubs(e,dt,a,d){
   // THE SUBSCRIPTION: lumbers at you, mails exploding invoices, cancels nothing
   e.x+=Math.cos(a)*e.spd*dt; e.y+=Math.sin(a)*e.spd*dt;
   e.billT-=dt; e.burstT-=dt;
-  if(e.billT<=0 && G.enemies.length<40){
+  if(e.billT<=0 && !e.enraged && G.enemies.length<40){
     e.billT = e.hp<e.maxhp*0.5 ? 2.6 : 3.8;
     for(let s=0;s<2;s++) spawnEnemy('drone', e.x+rand(-30,30), e.y+rand(-30,30), true);
     floatText(e.x,e.y-e.def.r-14,'YOU HAVE BEEN BILLED','#ffd166');
@@ -724,7 +740,7 @@ function updateCloud(e,dt,a,d){
     G.ebullets.push({ x:e.x, y:e.y, vx:Math.cos(e.spiral)*190, vy:Math.sin(e.spiral)*190,
       dmg:e.def.shot*dmgMul(G.wave), r:6, life:5 });
   }
-  if(e.addT<=0 && G.enemies.length<40){
+  if(e.addT<=0 && !e.enraged && G.enemies.length<40){
     e.addT=6;
     for(let s=0;s<3;s++) spawnEnemy('swarm', e.x+rand(-26,26), e.y+rand(-26,26), true);
     floatText(e.x,e.y-e.def.r-14,'SPINNING UP INSTANCES','#8fd8ff');
@@ -760,7 +776,7 @@ function updateBoss(e,dt,a,d){
     }
     tone(140,0.3,'sawtooth',0.12,60); G.cam.shake=Math.min(14,G.cam.shake+4);
   }
-  if(e.addT<=0 && G.enemies.length<16){
+  if(e.addT<=0 && !e.enraged && G.enemies.length<16){
     e.addT=7;
     for(let i=0;i<3;i++){
       const aa=rand(0,TAU);
