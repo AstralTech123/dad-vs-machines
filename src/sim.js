@@ -45,7 +45,9 @@ function simTick(dt){
       let guard=0, bought=true;
       while(bought && guard++<12){
         bought=false;
-        G.shop.offers.forEach((o,i)=>{ if(!o.sold && canBuy(o)){ buyOffer(i); bought=true; } });
+        for(const pl of G.players){
+          (pl.offers||[]).forEach((o,i)=>{ if(!o.sold && canBuyFor(pl,o)){ buyOffer(pl,i); bought=true; } });
+        }
       }
       document.getElementById('gowave').click();
     }

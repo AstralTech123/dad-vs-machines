@@ -185,6 +185,24 @@ function handlePadsGame(){
     }
   }
 }
+/* controller players browse and buy on their own shop column */
+function handlePadsShop(){
+  if(G.mode!=='shop') return;
+  if(!document.getElementById('levelup').classList.contains('hidden')) return;
+  if(document.getElementById('shop').classList.contains('hidden')) return;
+  if(G.players.length<2) return;
+  G.players.forEach((pl)=>{
+    if(pl.pad===null) return;
+    const st=PADS[pl.pad]; if(!st) return;
+    const n=(pl.offers?pl.offers.length:0)+1; /* +1 = reroll slot */
+    if(st.edgeUp){ pl.shopCur=((pl.shopCur||0)+n-1)%n; sfx.click(); renderShop(); }
+    if(st.edgeDown){ pl.shopCur=((pl.shopCur||0)+1)%n; sfx.click(); renderShop(); }
+    if(st.edge[0]){
+      if((pl.shopCur||0)<pl.offers.length) buyOffer(pl,pl.shopCur||0);
+      else rerollFor(pl);
+    }
+  });
+}
 /* controller players pick their level-up on their own column */
 function handlePadsLevelup(){
   if(!G.lvlState) return;
@@ -286,6 +304,7 @@ function loop(now){
   handlePadsGame();
   handlePadsLobby();
   handlePadsLevelup();
+  handlePadsShop();
   if(AC) setTrack(G.mode==='menu'?'menu':'game');
   updateFlies(dt);
   if(G.mode==='menu'){ updateDecor(dt); G.players[0].body.bob+=dt*3; SPRINK.a+=0.75*dt; }

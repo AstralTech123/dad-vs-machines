@@ -866,9 +866,21 @@ function updateYard(dt){
       spawnPart(GRILLPOS.x+rand(-8,8),GRILLPOS.y-32,-Math.PI/2+rand(-0.3,0.3),rand(14,30),rand(0.8,1.3),'smoke',rand(5,9));
     }
     if(G.grillT<=0){
-      G.burgerOut=true; G.grillT=26*G.stats.grillMul;
-      G.pickups.push({ x:BURGER_SPOT.x, y:BURGER_SPOT.y, vx:0, vy:0, mag:false, t:0, kind:'burger', val:15, grill:true });
-      toast(MAPKEY==='office' ? '🍔 Something is ready in the break room microwave' : '🍔 Burgers are ready at the grill');
+      const gm=Math.min(...G.players.map(q=>q.stats.grillMul||1));
+      G.burgerOut=true; G.grillT=26*gm;
+      /* the grill DELIVERS: the burger lands near whoever needs it most,
+         so nobody has to camp the corner of the map to heal */
+      const tgt=[...G.players].filter(q=>!q.body.dead)
+        .sort((a,b)=>a.hp/a.stats.maxHP - b.hp/b.stats.maxHP)[0];
+      let bx=BURGER_SPOT.x, by=BURGER_SPOT.y;
+      if(tgt){
+        const a=rand(0,TAU);
+        bx=clamp(tgt.body.x+Math.cos(a)*140, 60, ARENA_W-60);
+        by=clamp(tgt.body.y+Math.sin(a)*140, 60, ARENA_H-60);
+        [bx,by]=resolveObst(bx,by,12);
+      }
+      G.pickups.push({ x:bx, y:by, vx:0, vy:0, mag:false, t:0, kind:'burger', val:15, grill:true });
+      toast(MAPKEY==='office' ? '🍔 Break room delivery, still hot' : '🍔 Grill delivery! Burger incoming');
       sfx.sizzle();
     }
   }
@@ -1173,14 +1185,17 @@ function rarityRoll(){
   for(const k in ww){ r-=ww[k]; if(r<=0) return Number(k); }
   return 1;
 }
-function rollOffers(){
+/* every player has their own shelf, rolled with their own luck, class rules,
+   and prices, so the whole couch shops simultaneously */
+function shopOfferCount(){ return G.players.length>1 ? 3 : 4; }
+function rollOffersFor(pl){
+  const prev=G.active; saveActive(); setActive(pl);
   const offers=[];
-  for(let i=0;i<4;i++){
+  for(let i=0;i<shopOfferCount();i++){
     const isWeapon = Math.random()<0.42;
     const tier=tierRoll();
     const pref=(CHAMPS[G.champ]||{}).wpref;
     if(isWeapon){
-      // never offer what this champ cannot equip; lean toward their class
       const wpool=Object.keys(WEAPONS).filter(k=>champCanUse(WEAPONS[k].cls));
       const key=wpick(wpool.map(k=>[k, WEAPONS[k].cls===pref?3:1]));
       offers.push({ kind:'w', key, tier, price:priceOf('w',key,tier), sold:false });
@@ -1188,12 +1203,10 @@ function rollOffers(){
       const rar=rarityRoll();
       let pool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar===rar && !(rar===5 && G.itemCounts[k]));
       if(!pool.length) pool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar===1);
-      // class-tagged items show up more often for the class that wants them
       const key=wpick(pool.map(k=>{
         const st=ITEMS[k].stats||{};
         return [k, (pref && st[pref+'Mul'])?3:1];
       }));
-      // occasionally the item is CURSED: 40% off, but it costs you something
       let curse=null, price=priceOf('i',key,1);
       if(ITEMS[key].rar<5 && Math.random()<0.12){
         curse=pick([['maxHP',-6],['move',-12],['armor',-1],['dodge',-0.03],['luck',-0.08]]);
@@ -1202,29 +1215,30 @@ function rollOffers(){
       offers.push({ kind:'i', key, tier:ITEMS[key].rar, price, curse, sold:false });
     }
   }
-  G.shop.offers=offers;
-}
-function shopper(){ return G.players[G.shopFor]||G.players[0]; }
-function switchShopFor(i){
-  if(i===G.shopFor) return;
-  saveActive();
-  G.shopFor=i;
-  setActive(shopper());
-  sfx.click(); renderShop();
+  pl.offers=offers;
+  saveActive(); if(prev) setActive(prev);
 }
 function openShop(){
-  G.mode='shop'; G.shop.rerolls=0; G.shop.favorUsed=false; G.shop.favorPicks=null;
-  G.shopFor=0; saveActive(); setActive(shopper());
+  G.mode='shop'; G.shop.favorUsed=false; G.shop.favorPicks=null;
   document.getElementById('favorpick').classList.add('hidden');
-  rollOffers(); renderShop(); show('shop');
+  for(const pl of G.players){ pl.rerolls=0; pl.shopCur=0; rollOffersFor(pl); }
+  saveActive(); setActive(G.players[0]);
+  renderShop(); show('shop');
 }
-function sellWeapon(i){
-  if(G.weapons.length<=1) return;
-  const w=G.weapons[i]; if(!w) return;
+function canBuyFor(pl,o){
+  const prev=G.active; saveActive(); setActive(pl);
+  const r=canBuy(o);
+  saveActive(); if(prev) setActive(prev);
+  return r;
+}
+function sellWeapon(pl,i){
+  if(pl.weapons.length<=1) return;
+  const w=pl.weapons[i]; if(!w) return;
+  const prev=G.active; saveActive(); setActive(pl);
   const val=Math.max(1,Math.round(priceOf('w',w.key,w.tier)*0.5));
   G.mats+=val; G.totalMats+=val;
-  G.weapons.splice(i,1);
-  saveActive();
+  pl.weapons.splice(i,1);
+  saveActive(); if(prev) setActive(prev);
   toast('Sold '+WEAPONS[w.key].name+' for 🔩'+val);
   sfx.buy(); renderShop(); renderSlots(); updateHUD();
 }
@@ -1244,11 +1258,12 @@ function buyYard(key){
   saveActive();
   sfx.buy(); renderShop(); updateHUD();
 }
-function rerollCost(){ return Math.max(1, Math.round((G.wave + G.shop.rerolls*2)*G.stats.rerollMul)); }
-function rerollShop(){
-  const c=rerollCost();
+function rerollCostFor(pl){ return Math.max(1, Math.round((G.wave + (pl.rerolls||0)*2)*pl.stats.rerollMul)); }
+function rerollFor(pl){
+  const c=rerollCostFor(pl);
   if(G.mats<c) return;
-  G.mats-=c; G.shop.rerolls++; rollOffers(); renderShop(); sfx.click(); updateHUD();
+  G.mats-=c; pl.rerolls=(pl.rerolls||0)+1;
+  rollOffersFor(pl); renderShop(); sfx.click(); updateHUD();
 }
 function canBuy(o){
   if(o.sold || G.mats<o.price) return false;
@@ -1260,9 +1275,10 @@ function canBuy(o){
   }
   return true;
 }
-function buyOffer(i){
-  const o=G.shop.offers[i];
-  if(!canBuy(o)) return;
+function buyOffer(pl,i){
+  const o=pl.offers[i]; if(!o) return;
+  const prev=G.active; saveActive(); setActive(pl);
+  if(!canBuy(o)){ if(prev) setActive(prev); return; }
   G.mats-=o.price; o.sold=true; sfx.buy();
   if(o.kind==='w'){
     G.weapons.push(mkWeapon(o.key,o.tier));
@@ -1278,7 +1294,7 @@ function buyOffer(i){
     G.itemCounts[o.key]=(G.itemCounts[o.key]||0)+1;
     if(it.rar===5) sfx.legendary();
   }
-  saveActive();
+  saveActive(); if(prev) setActive(prev);
   renderShop(); renderSlots(); updateHUD();
 }
 function tryCombine(key,tier){
@@ -1326,59 +1342,95 @@ function pc(v){ return (v>0?'+':'')+Math.round(v*100)+'%'; }
 function fmtItemStats(d){
   return Object.entries(d.stats||{}).map(([k,v])=> STAT_FMT[k]? STAT_FMT[k](v) : k+' '+v).join(' · ');
 }
+function offerCard(pl,pi,o,i,small){
+  let iconHTML,name,desc,tierHTML,cls;
+  if(o.kind==='w'){ const d=WEAPONS[o.key], t=TIER[o.tier];
+    iconHTML=`<img src="${ICONURL[o.key]}" alt="">`; name=d.name;
+    desc=d.desc+`<br><span style="color:#ece7db">DMG ${Math.round(d.dmg*t.dmg)} · every ${(d.cd*t.cd).toFixed(2)}s</span>`;
+    if(pl.weapons.length>=MAX_SLOTS && !pl.weapons.some(w=>w.key===o.key&&w.tier===o.tier&&o.tier<3))
+      desc+='<br><span style="color:#e0a34d">Slots full. Needs a matching pair to combine.</span>';
+    tierHTML=`<div class="ctier">${t.name} WEAPON</div>`; cls='t'+o.tier;
+  } else { const d=ITEMS[o.key], r=RARITY[o.tier];
+    iconHTML=d.icon; name=(o.curse?'Cursed ':'')+d.name;
+    const stats=fmtItemStats(d);
+    desc=(stats?`<span style="color:#ece7db">${stats}</span><br>`:'')+(d.note||'');
+    if(o.curse){
+      const cf=STAT_FMT[o.curse[0]];
+      desc+=`<br><span style="color:#ff5a5f">CURSE: ${cf?cf(o.curse[1]):o.curse[0]+' '+o.curse[1]}</span>`;
+    }
+    tierHTML=`<div class="ctier" style="color:${o.curse?'#ff5a5f':r.color}">${o.curse?'CURSED '+r.name:r.name}</div>`;
+    cls=(o.curse?'cursed ':'')+'r'+o.tier;
+  }
+  const div=document.createElement('div');
+  div.className='card '+cls+(o.sold?' sold':'')+(small?' small':'')
+    +(pl.pad!==null && pl.shopCur===i && !o.sold ? ' cur':'');
+  div.innerHTML=`<div class="cicon">${iconHTML}</div><div class="cname">${name}</div>
+    ${tierHTML}
+    <div class="cdesc">${desc}</div>
+    <button ${canBuyFor(pl,o)?'':'disabled'}>${o.sold?'SOLD':'🔩 '+o.price}</button>`;
+  div.querySelector('button').addEventListener('click',()=>buyOffer(pl,i));
+  return div;
+}
+function garageHTML(pl){
+  return pl.weapons.map((w,i)=>`<span class="wrow"><img src="${ICONURL[w.key]}" alt=""><sup>${w.tier}</sup>`+
+    (pl.weapons.length>1?`<button class="sellbtn" data-i="${i}">SELL 🔩${Math.max(1,Math.round(priceOf('w',w.key,w.tier)*0.5))}</button>`:'')+
+    `</span>`).join(' ');
+}
 function renderShop(){
   document.getElementById('shopmats').textContent='🔩 '+G.mats;
   document.getElementById('gowave').textContent='START WAVE '+(G.wave+1)+' →';
-  /* co-op: pick which neighbor the shelf is buying for; doubles as the
-     between-wave loadout inspector since all panels follow the selection */
-  const bf=document.getElementById('buyfor');
-  if(G.players.length>1){
-    bf.style.display='flex';
-    bf.innerHTML='<span class="bflabel">BUYING FOR</span>'+G.players.map((pl,i)=>
-      `<div class="bfchip${i===G.shopFor?' sel':''}" data-i="${i}" style="border-color:${i===G.shopFor?PCOLORS[i]:'#333a30'}">`+
-      `<img src="${champPortrait(pl.champ)}" alt=""><span>P${i+1} ${CHAMPS[pl.champ].name} · 🔩${pl.earned||0} collected</span></div>`).join('');
-    bf.querySelectorAll('.bfchip').forEach(ch=> ch.addEventListener('click',()=>switchShopFor(Number(ch.dataset.i))));
-  } else { bf.style.display='none'; bf.innerHTML=''; }
+  document.getElementById('buyfor').style.display='none';
   const box=document.getElementById('offers'); box.innerHTML='';
-  G.shop.offers.forEach((o,i)=>{
-    let iconHTML,name,desc,tierHTML,cls;
-    if(o.kind==='w'){ const d=WEAPONS[o.key], t=TIER[o.tier];
-      iconHTML=`<img src="${ICONURL[o.key]}" alt="">`; name=d.name;
-      desc=d.desc+`<br><span style="color:#ece7db">DMG ${Math.round(d.dmg*t.dmg)} · every ${(d.cd*t.cd).toFixed(2)}s</span>`;
-      if(G.weapons.length>=MAX_SLOTS && !G.weapons.some(w=>w.key===o.key&&w.tier===o.tier&&o.tier<3))
-        desc+='<br><span style="color:#e0a34d">Slots full. Needs a matching pair to combine.</span>';
-      tierHTML=`<div class="ctier">${t.name} WEAPON</div>`; cls='t'+o.tier;
-    } else { const d=ITEMS[o.key], r=RARITY[o.tier];
-      iconHTML=d.icon; name=(o.curse?'Cursed ':'')+d.name;
-      const stats=fmtItemStats(d);
-      desc=(stats?`<span style="color:#ece7db">${stats}</span><br>`:'')+(d.note||'');
-      if(o.curse){
-        const cf=STAT_FMT[o.curse[0]];
-        desc+=`<br><span style="color:#ff5a5f">CURSE: ${cf?cf(o.curse[1]):o.curse[0]+' '+o.curse[1]}</span>`;
-      }
-      tierHTML=`<div class="ctier" style="color:${o.curse?'#ff5a5f':r.color}">${o.curse?'CURSED '+r.name:r.name}</div>`;
-      cls=(o.curse?'cursed ':'')+'r'+o.tier;
-    }
-    const div=document.createElement('div');
-    div.className='card '+cls+(o.sold?' sold':'');
-    div.innerHTML=`<div class="cicon">${iconHTML}</div><div class="cname">${name}</div>
-      ${tierHTML}
-      <div class="cdesc">${desc}</div>
-      <button ${canBuy(o)?'':'disabled'}>${o.sold?'SOLD':'🔩 '+o.price}</button>`;
-    div.querySelector('button').addEventListener('click',()=>buyOffer(i));
-    box.appendChild(div);
-  });
+  const coop=G.players.length>1;
+  box.className=coop?'coopshop':'';
+  if(coop){
+    /* one column per neighbor: everyone browses and buys at the same time.
+       P1 clicks; pad players steer their column with dpad and buy with A. */
+    G.players.forEach((pl,pi)=>{
+      const col=document.createElement('div');
+      col.className='shopcol';
+      col.style.borderColor=PCOLORS[pi];
+      const head=document.createElement('div');
+      head.className='shophead2'; head.style.color=PCOLORS[pi];
+      head.innerHTML=`<img src="${champPortrait(pl.champ)}" alt=""> P${pi+1} ${CHAMPS[pl.champ].name}`+
+        `<span class="shopmini">HP ${Math.ceil(pl.hp)}/${pl.stats.maxHP} · 🔩${pl.earned||0} collected${pl.pad!==null?' · dpad + A':''}</span>`;
+      col.appendChild(head);
+      pl.offers.forEach((o,i)=> col.appendChild(offerCard(pl,pi,o,i,true)));
+      const rb=document.createElement('button');
+      rb.className='colreroll'+(pl.pad!==null && pl.shopCur===pl.offers.length?' cur':'');
+      rb.textContent='Reroll (🔩 '+rerollCostFor(pl)+')';
+      rb.disabled=G.mats<rerollCostFor(pl);
+      rb.addEventListener('click',()=>rerollFor(pl));
+      col.appendChild(rb);
+      const gr=document.createElement('div');
+      gr.className='colgarage';
+      gr.innerHTML='<span class="glabel">GARAGE</span> '+garageHTML(pl);
+      gr.querySelectorAll('.sellbtn').forEach(b=>
+        b.addEventListener('click',()=>sellWeapon(pl,Number(b.dataset.i))));
+      col.appendChild(gr);
+      box.appendChild(col);
+    });
+  } else {
+    const pl=G.players[0];
+    pl.offers.forEach((o,i)=> box.appendChild(offerCard(pl,0,o,i,false)));
+  }
   const rb=document.getElementById('rerollbtn');
-  rb.textContent='Reroll (🔩 '+rerollCost()+')';
-  rb.disabled = G.mats<rerollCost();
-  document.getElementById('statpanel').innerHTML=statsHTML();
-  const wp=G.weapons.map((w,i)=>`<span class="wrow"><img src="${ICONURL[w.key]}" alt=""><sup>${w.tier}</sup>`+
-    (G.weapons.length>1?`<button class="sellbtn" data-i="${i}">SELL 🔩${Math.max(1,Math.round(priceOf('w',w.key,w.tier)*0.5))}</button>`:'')+
-    `</span>`).join(' ');
-  document.getElementById('weappanel').innerHTML=`<h3>GARAGE (${G.weapons.length}/${MAX_SLOTS} slots)</h3>
-    ${wp}<br>Buy two of the same weapon + tier and they combine. Selling pays half.`;
-  document.querySelectorAll('#weappanel .sellbtn').forEach(b=>
-    b.addEventListener('click',()=>sellWeapon(Number(b.dataset.i))));
+  rb.style.display=coop?'none':'';
+  if(!coop){
+    rb.textContent='Reroll (🔩 '+rerollCostFor(G.players[0])+')';
+    rb.disabled = G.mats<rerollCostFor(G.players[0]);
+  }
+  const sp=document.getElementById('statpanel'), wpn=document.getElementById('weappanel');
+  sp.style.display=coop?'none':'';
+  wpn.style.display=coop?'none':'';
+  if(!coop){
+    sp.innerHTML=statsHTML();
+    const pl=G.players[0];
+    wpn.innerHTML=`<h3>GARAGE (${pl.weapons.length}/${MAX_SLOTS} slots)</h3>
+      ${garageHTML(pl)}<br>Buy two of the same weapon + tier and they combine. Selling pays half.`;
+    wpn.querySelectorAll('.sellbtn').forEach(b=>
+      b.addEventListener('click',()=>sellWeapon(pl,Number(b.dataset.i))));
+  }
   document.getElementById('yardpanel').innerHTML=
     `<h3>${MAPKEY==='office'?'FACILITIES':'YARD WORK'} (lasts the whole run)</h3>`+
     Object.entries(YARD_UPGRADES).map(([k,u])=>{
@@ -1395,6 +1447,6 @@ function renderShop(){
   fb.textContent = G.favorNext ? '📞 '+CHAMPS[G.favorNext].name+' is coming'
     : G.shop.favorUsed ? '📞 Nobody else is home' : '📞 CALL A NEIGHBOR (free)';
 }
-document.getElementById('rerollbtn').addEventListener('click',rerollShop);
+document.getElementById('rerollbtn').addEventListener('click',()=>rerollFor(G.players[0]));
 document.getElementById('gowave').addEventListener('click',()=>{ sfx.click(); startWave(G.wave+1); });
 

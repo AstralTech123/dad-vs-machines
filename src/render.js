@@ -257,7 +257,8 @@ function buildGuide(){
     <p>Six slots. Buy two of the same weapon at the same tier and they combine into the next tier.</p>
     <table>${weapRows}</table>
     <h3>THE YARD</h3>
-    <p>The grill cooks healing burgers · the trampoline launches you across the map ·
+    <p>The grill cooks healing burgers and DELIVERS them to whoever is hurting most, follow the green arrow ·
+    the trampoline launches you across the map ·
     the kiddie pool slows everyone in it · the sprinkler damages machines · mud slows you ·
     flamingos tip over. The yard is on your side, use it.</p>
     <h3>THE MACHINES</h3>
@@ -283,12 +284,24 @@ document.getElementById('endlessbtn').addEventListener('click',()=>{
   banner('ENDLESS SHIFT','THE MACHINES DO NOT CLOCK OUT');
   startWave(G.wave+1);
 });
-document.getElementById('musicbtn').addEventListener('click',function(){
-  toggleMusic(); sfx.click(); this.textContent='MUSIC: '+(musicOn?'ON':'OFF');
-});
-document.getElementById('sfxbtn').addEventListener('click',function(){
-  toggleSfx(); this.textContent='SFX: '+(sfxOn?'ON':'OFF'); sfx.click();
-});
+function updateSoundBtns(){
+  for(const id of ['musicbtn','mmusicbtn']){
+    const el=document.getElementById(id); if(el) el.textContent='MUSIC: '+(musicOn?'ON':'OFF');
+  }
+  for(const id of ['sfxbtn','msfxbtn']){
+    const el=document.getElementById(id); if(el) el.textContent='SFX: '+(sfxOn?'ON':'OFF');
+  }
+}
+for(const id of ['musicbtn','mmusicbtn']){
+  document.getElementById(id).addEventListener('click',()=>{
+    initAudio(); toggleMusic(); sfx.click(); updateSoundBtns();
+  });
+}
+for(const id of ['sfxbtn','msfxbtn']){
+  document.getElementById(id).addEventListener('click',()=>{
+    initAudio(); toggleSfx(); updateSoundBtns(); sfx.click();
+  });
+}
 
 /* ---------------- champion select ---------------- */
 let selChamp='dad', selDiff=2, selMap='yard';

@@ -260,6 +260,26 @@
   .bfchip img { width:26px; height:26px; image-rendering:pixelated; }
   .bfchip.sel { box-shadow:0 0 10px rgba(255,209,102,.25); }
   .pph { font-size:11px; font-weight:bold; letter-spacing:2px; margin-top:10px; }
+  #offers.coopshop { display:flex; gap:10px; align-items:flex-start; }
+  .shopcol { flex:1; border:2px solid #333a30; border-radius:12px; padding:8px;
+             display:flex; flex-direction:column; gap:8px; min-width:170px;
+             background:rgba(0,0,0,0.18); }
+  .shophead2 { font-size:11px; font-weight:bold; letter-spacing:.5px; display:flex;
+               align-items:center; gap:6px; flex-wrap:wrap; }
+  .shophead2 img { width:26px; height:26px; image-rendering:pixelated; }
+  .shopmini { width:100%; font-weight:normal; color:#a39c8a; font-size:10px; letter-spacing:0; }
+  .card.small { min-height:0; padding:9px; gap:4px; }
+  .card.small .cicon { font-size:22px; height:26px; }
+  .card.small .cdesc { font-size:11px; }
+  .card.cur { outline:3px solid #ffd166; outline-offset:2px; }
+  .colreroll { cursor:pointer; font-family:inherit; font-weight:bold; font-size:12px; border:none;
+               border-radius:8px; padding:8px; background:#2a2f27; color:#ece7db;
+               border-bottom:3px solid #161a14; }
+  .colreroll.cur { outline:3px solid #ffd166; outline-offset:2px; }
+  .colreroll:disabled { opacity:.4; cursor:default; }
+  .colgarage { font-size:11px; color:#aca595; line-height:2; }
+  .colgarage .glabel { font-size:9px; letter-spacing:2px; color:#7c8272; }
+  .colgarage img { width:20px; height:20px; vertical-align:middle; }
   #gowave { background:linear-gradient(180deg,#ffd97a,#f0a93a); color:#221c10;
             border-bottom:3px solid #a8701c; letter-spacing:1px; }
   #shoppanels { display:flex; gap:12px; margin-top:14px; flex-wrap:wrap; }
@@ -325,6 +345,8 @@
   </div>
   <button class="bigbtn" id="startbtn">CLOCK IN</button><br>
   <button class="bigbtn slim alt" id="mguidebtn" style="margin-top:12px;">HOW TO PLAY</button>
+  <button class="bigbtn slim alt" id="mmusicbtn" style="margin-top:12px;">MUSIC: ON</button>
+  <button class="bigbtn slim alt" id="msfxbtn" style="margin-top:12px;">SFX: ON</button>
   <div id="touchnote">Touch: drag to move, two-finger tap to dash, tap the mower bar to ride.</div>
   <div class="credit">Handcrafted artisanal code. No machines were consulted.</div>
 </div>
