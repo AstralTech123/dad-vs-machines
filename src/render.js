@@ -362,20 +362,26 @@ document.getElementById('quitbtn').addEventListener('click',()=>{ sfx.click(); h
 document.getElementById('pguidebtn').addEventListener('click',()=>{ sfx.click(); buildGuide(); show('guide'); });
 document.getElementById('mguidebtn').addEventListener('click',()=>{ initAudio(); sfx.click(); buildGuide(); show('guide'); });
 document.getElementById('guideclose').addEventListener('click',()=>{ sfx.click(); hide('guide'); });
-/* fullscreen: one toggle, reachable on every screen, always exitable */
+/* fullscreen: one toggle, reachable on every screen, always exitable.
+   iPhone Safari has no fullscreen API, so it gets a proper explainer. */
 document.getElementById('fsbtn').addEventListener('click',()=>{
   sfx.click();
+  if(navigator.standalone || matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches){
+    toast('Already fullscreen. Nice.');
+    return;
+  }
   if(document.fullscreenElement){
     if(document.exitFullscreen) document.exitFullscreen();
   } else {
     const d=document.documentElement;
     if(d.requestFullscreen){
-      d.requestFullscreen().catch(()=>toast('Fullscreen blocked here. On iPhone: Share → Add to Home Screen.'));
+      d.requestFullscreen().catch(()=>show('fshelp'));
     } else {
-      toast('Fullscreen not supported here. On iPhone: Share → Add to Home Screen.');
+      show('fshelp');
     }
   }
 });
+document.getElementById('fshelpclose').addEventListener('click',()=>{ sfx.click(); hide('fshelp'); });
 document.addEventListener('fullscreenchange',()=>{
   document.getElementById('fsbtn').classList.toggle('fson', !!document.fullscreenElement);
 });

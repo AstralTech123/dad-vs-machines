@@ -1,0 +1,13 @@
+{
+  "name": "DAD vs THE MACHINES",
+  "short_name": "DvM",
+  "description": "The neighborhood dads versus the robot uprising. Browser wave survival.",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#2e4029",
+  "theme_color": "#2e4029",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

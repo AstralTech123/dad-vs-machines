@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DAD vs MACHINES">
+<meta name="theme-color" content="#2e4029">
+<link rel="manifest" href="manifest.json">
 <title>DAD vs THE MACHINES</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -315,7 +321,8 @@
   #toast { position:fixed; bottom:9vh; left:50%; transform:translateX(-50%); background:#232921;
            border:1px solid #4a5044; color:#ffd166; font-weight:bold; padding:10px 22px;
            border-radius:10px; z-index:20; opacity:0; transition:opacity .25s; pointer-events:none;
-           box-shadow:0 6px 20px rgba(0,0,0,.5); white-space:nowrap; }
+           box-shadow:0 6px 20px rgba(0,0,0,.5);
+           max-width:88vw; width:max-content; text-align:center; line-height:1.5; }
 </style>
 </head>
 <body>
@@ -428,6 +435,19 @@
   </div>
   <div class="scorerow"><input id="pausename" maxlength="16" placeholder="YOUR NAME"><button id="pausesubmit">RECORD SCORE</button></div>
   <div class="controls">Press <span class="kbd">P</span> or tap ⏸ to resume</div>
+</div>
+
+<div id="fshelp" class="overlay hidden">
+  <h2 class="cstitle" style="font-size:22px;">FULLSCREEN ON IPHONE</h2>
+  <div class="panel" style="margin-top:14px; width:min(460px,92vw); pointer-events:auto; text-align:left; font-size:14px; line-height:2;">
+    Apple doesn't let websites go fullscreen in Safari, but there's a better way
+    that also gives you a home screen icon:<br><br>
+    1. Tap the <b>Share</b> button (the square with the arrow)<br>
+    2. Scroll down and tap <b>Add to Home Screen</b><br>
+    3. Tap <b>Add</b>, then open the game from its new icon<br><br>
+    It launches edge-to-edge with no browser bars, every time.
+  </div>
+  <button class="bigbtn slim" id="fshelpclose" style="margin-top:16px;">GOT IT</button>
 </div>
 
 <div id="records" class="overlay hidden">
