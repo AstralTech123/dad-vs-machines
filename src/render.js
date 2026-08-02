@@ -216,12 +216,12 @@ function buildGuide(){
 }
 document.getElementById('resumebtn').addEventListener('click',()=>{ sfx.click(); togglePause(); });
 document.getElementById('restartbtn').addEventListener('click',()=>{ sfx.click(); hide('pause'); beginRun(); });
-document.getElementById('quitbtn').addEventListener('click',()=>{ sfx.click(); hide('pause'); newGame(); show('menu'); });
+document.getElementById('quitbtn').addEventListener('click',()=>{ sfx.click(); hide('pause'); LOBBY.length=0; newGame(); show('menu'); });
 document.getElementById('pguidebtn').addEventListener('click',()=>{ sfx.click(); buildGuide(); show('guide'); });
 document.getElementById('mguidebtn').addEventListener('click',()=>{ initAudio(); sfx.click(); buildGuide(); show('guide'); });
 document.getElementById('guideclose').addEventListener('click',()=>{ sfx.click(); hide('guide'); });
-document.getElementById('deadmenubtn').addEventListener('click',()=>{ sfx.click(); hide('dead'); newGame(); show('menu'); });
-document.getElementById('winmenubtn').addEventListener('click',()=>{ sfx.click(); hide('win'); newGame(); show('menu'); });
+document.getElementById('deadmenubtn').addEventListener('click',()=>{ sfx.click(); hide('dead'); LOBBY.length=0; newGame(); show('menu'); });
+document.getElementById('winmenubtn').addEventListener('click',()=>{ sfx.click(); hide('win'); LOBBY.length=0; newGame(); show('menu'); });
 document.getElementById('endlessbtn').addEventListener('click',()=>{
   initAudio(); sfx.click(); hide('win');
   G.endless=true;
@@ -320,6 +320,8 @@ document.getElementById('startbtn').addEventListener('click',()=>{ initAudio(); 
 function beginRun(){
   if(MAPKEY!==selMap){ MAPKEY=selMap; FLOOR=buildFloor(); }
   newGame(); G.diff=selDiff;
+  /* prune joiners whose controller is gone */
+  for(let i=LOBBY.length-1;i>=0;i--) if(!PADS[LOBBY[i].pad]) LOBBY.splice(i,1);
   const champKeys=Object.keys(CHAMPS);
   const roster=[{pad:null, champ:selChamp}]
     .concat(LOBBY.map(l=>({pad:l.pad, champ:champKeys[l.champIdx]})));
@@ -345,13 +347,15 @@ function renderLobby(){
   const bar=document.getElementById('lobbybar');
   if(!bar) return;
   const champKeys=Object.keys(CHAMPS);
-  let html=`<span class="lobhint">🎮 Couch co-op: press <b>A</b> on a controller to join · dpad picks your neighbor · B leaves</span>`;
+  let html=`<span class="lobhint">🎮 Couch co-op: press <b>A</b> on a controller to join · dpad picks your neighbor · B or a click removes them</span>`;
   LOBBY.forEach((l,ix)=>{
     const key=champKeys[l.champIdx], i=ix+1;
-    html+=`<span class="lobslot" style="border-color:${PCOLORS[i]}">`+
-      `<img src="${champPortrait(key)}" alt=""> P${i+1} ${CHAMPS[key].name}</span>`;
+    html+=`<span class="lobslot" style="border-color:${PCOLORS[i]}" title="Click to remove">`+
+      `<img src="${champPortrait(key)}" alt=""> P${i+1} ${CHAMPS[key].name} ✕</span>`;
   });
   bar.innerHTML=html;
+  bar.querySelectorAll('.lobslot').forEach((el,ix)=>
+    el.addEventListener('click',()=>{ LOBBY.splice(ix,1); sfx.click(); renderLobby(); }));
 }
 document.getElementById('champstart').addEventListener('click',()=>{ sfx.click(); hide('champsel'); beginRun(); });
 document.getElementById('retrybtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('dead'); beginRun(); });

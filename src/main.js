@@ -131,8 +131,20 @@ function updatePads(){
   const gps=navigator.getGamepads? navigator.getGamepads() : [];
   for(const gp of gps){
     if(!gp) continue;
+    /* only real controllers: wheels, receivers, and phantom HID devices
+       report a non-standard mapping and must never join or steer */
+    if(gp.mapping!=='standard') continue;
     let st=PADS[gp.index];
-    if(!st){ st=PADS[gp.index]={ x:0,y:0,mag:0, pressed:{}, edge:{} }; }
+    if(!st){
+      /* first sighting: record button state WITHOUT firing edges so a
+         stuck or phantom-pressed button cannot ghost-join the lobby */
+      st=PADS[gp.index]={ x:0,y:0,mag:0, pressed:{}, edge:{}, axHeld:null };
+      for(let i=0;i<gp.buttons.length;i++){
+        st.pressed[i]=!!(gp.buttons[i]&&gp.buttons[i].pressed);
+        st.edge[i]=false;
+      }
+      continue;
+    }
     const x=gp.axes[0]||0, y=gp.axes[1]||0, mag=Math.hypot(x,y);
     st.x=x; st.y=y; st.mag=mag;
     for(let i=0;i<gp.buttons.length;i++){
@@ -175,6 +187,7 @@ function handlePadsLobby(){
     if(!joined){
       if(st.edge[0] && LOBBY.length<3){
         LOBBY.push({ pad:idx, champIdx:Math.floor(rand(0,champKeys.length)) });
+        toast('🎮 Player '+(LOBBY.length+1)+' joined the couch');
         sfx.buy(); renderLobby();
       }
       continue;
