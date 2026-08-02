@@ -2,25 +2,38 @@
 /* ---------------- HUD / overlays ---------------- */
 function updateHUD(){
   if(!G) return;
-  const frac=clamp(G.hp/G.stats.maxHP,0,1);
+  const p0=G.players[0];
+  const p0hp=(G.active===p0)? G.hp : p0.hp;
+  const frac=clamp(p0hp/p0.stats.maxHP,0,1);
   const hf=document.getElementById('hpfill');
   hf.style.width=(frac*100)+'%';
   hf.className = frac<0.3 ? 'low' : '';
-  document.getElementById('hptext').textContent=Math.ceil(G.hp)+' / '+G.stats.maxHP;
-  document.getElementById('armorchip').textContent=G.stats.armor>0?('🛡 '+G.stats.armor+' armor'):'';
+  document.getElementById('hptext').textContent=Math.ceil(p0hp)+' / '+p0.stats.maxHP;
+  document.getElementById('armorchip').textContent=p0.stats.armor>0?('🛡 '+p0.stats.armor+' armor'):'';
   document.getElementById('wavenum').textContent=G.wave||1;
   const t=Math.max(0,Math.ceil(G.waveTime));
   document.getElementById('wavetimer').textContent=(G.sub==='boss')?'BOSS':('0:'+(t<10?'0':'')+t);
   document.getElementById('matcount').textContent='🔩 '+G.mats;
   document.getElementById('killcount').textContent=G.kills+' machines scrapped';
-  const P=G.player;
-  const un=G.stats.ultNeed||ULT_NEED;
+  const P=p0.body;
+  const un=p0.stats.ultNeed||ULT_NEED;
   document.getElementById('ultfill').style.width=(P.ult/un*100)+'%';
   const uw=document.getElementById('ultwrap');
   const ut=document.getElementById('ulttext');
   if(P.mowT>0){ ut.textContent='MOWING'; uw.className=''; }
   else if(P.ult>=un){ ut.textContent='🚜 MOWER READY (E)'; uw.className='ready'; }
   else { ut.textContent='MOWER '+P.ult+'/'+un; uw.className=''; }
+  const cb=document.getElementById('cobars');
+  if(G.players.length>1){
+    cb.style.display='block';
+    cb.innerHTML=G.players.slice(1).map((pl,ix)=>{
+      const i=ix+1;
+      const fr=clamp(((G.active===pl)?G.hp:pl.hp)/pl.stats.maxHP,0,1);
+      return `<div class="cobar"><span class="coname" style="color:${PCOLORS[i]}">P${i+1} ${CHAMPS[pl.champ].name}</span>`+
+        `<div class="cotrack"><div class="cofill" style="width:${fr*100}%;background:${pl.body.dead?'#555':PCOLORS[i]}"></div></div>`+
+        `${pl.body.dead?'<span class="codown">DOWN</span>':''}</div>`;
+    }).join('');
+  } else { cb.style.display='none'; cb.innerHTML=''; }
   document.getElementById('lvlchip').textContent='LV '+(G.level||1)+' · '+Math.floor(G.xp||0)+'/'+xpNeed(G.level||1)+' XP';
   const cl=document.getElementById('contractline');
   if(G.contract){
@@ -69,7 +82,11 @@ function showLevelUp(){
     el.className='lvlcard';
     el.innerHTML=`<div class="lt">${u.t}</div><div class="ld">${u.d}</div>`;
     el.addEventListener('click',()=>{
-      u.a(G.stats); sfx.buy(); G.pendingLvls--; updateHUD();
+      /* the whole couch levels together: one pick, everyone gets it */
+      const prev=G.active; saveActive();
+      for(const pl of G.players){ setActive(pl); u.a(G.stats); saveActive(); }
+      setActive(prev||G.players[0]);
+      sfx.buy(); G.pendingLvls--; updateHUD();
       if(G.pendingLvls>0) showLevelUp();
       else { hide('levelup'); openShop(); }
     });
@@ -165,6 +182,9 @@ function buildGuide(){
     <span class="sv">E</span> rides the mower once 25 kills charge it · <span class="sv">P</span> pause.<br>
     Touch: drag anywhere to move, two finger tap to dash, tap the mower bar to ride.<br>
     Controller: left stick moves, <span class="sv">A</span> dashes, <span class="sv">B</span> or <span class="sv">X</span> rides the mower, <span class="sv">Start</span> pauses. Menus use the pointer.<br>
+    Couch co-op: up to 4 neighbors. Press <span class="sv">A</span> on a controller at champ select to join, dpad picks your champ.
+    Bolts are shared, level-ups boost everyone, downed neighbors revive if you stand with them.
+    In the shop, pick who you are BUYING FOR to gear each player.<br>
     Weapons aim and fire themselves. Your job is positioning.</p>
     <h3>STATS</h3>
     <table>${statRows}</table>
@@ -273,6 +293,7 @@ function buildChampSelect(){
   }
   buildMapRow();
   buildDiffRow();
+  renderLobby();
   renderChampDetail();
 }
 function renderChampDetail(){
@@ -298,7 +319,39 @@ function renderChampDetail(){
 document.getElementById('startbtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('menu'); buildChampSelect(); show('champsel'); });
 function beginRun(){
   if(MAPKEY!==selMap){ MAPKEY=selMap; FLOOR=buildFloor(); }
-  newGame(); G.diff=selDiff; applyChamp(selChamp); startWave(1);
+  newGame(); G.diff=selDiff;
+  const champKeys=Object.keys(CHAMPS);
+  const roster=[{pad:null, champ:selChamp}]
+    .concat(LOBBY.map(l=>({pad:l.pad, champ:champKeys[l.champIdx]})));
+  G.players=roster.map(r=>mkPlayer(r.pad,r.champ));
+  G.players.forEach((pl,i)=>{
+    pl.body.x=1300+(i-(roster.length-1)/2)*54;
+    setActive(pl); applyChamp(pl.champ); saveActive();
+  });
+  setActive(G.players[0]);
+  startWave(1);
+}
+function pauseStatsAll(){
+  const prev=G.active; saveActive();
+  let out='';
+  G.players.forEach((pl,i)=>{
+    setActive(pl);
+    out+=(G.players.length>1?`<div class="pph" style="color:${PCOLORS[i]}">PLAYER ${i+1}</div>`:'')+statsHTML(true);
+  });
+  setActive(prev||G.players[0]);
+  return out;
+}
+function renderLobby(){
+  const bar=document.getElementById('lobbybar');
+  if(!bar) return;
+  const champKeys=Object.keys(CHAMPS);
+  let html=`<span class="lobhint">🎮 Couch co-op: press <b>A</b> on a controller to join · dpad picks your neighbor · B leaves</span>`;
+  LOBBY.forEach((l,ix)=>{
+    const key=champKeys[l.champIdx], i=ix+1;
+    html+=`<span class="lobslot" style="border-color:${PCOLORS[i]}">`+
+      `<img src="${champPortrait(key)}" alt=""> P${i+1} ${CHAMPS[key].name}</span>`;
+  });
+  bar.innerHTML=html;
 }
 document.getElementById('champstart').addEventListener('click',()=>{ sfx.click(); hide('champsel'); beginRun(); });
 document.getElementById('retrybtn').addEventListener('click',()=>{ initAudio(); sfx.click(); hide('dead'); beginRun(); });
@@ -778,26 +831,48 @@ function drawGnome(g){
   ctx.fillStyle='#c22e35'; ctx.beginPath(); ctx.moveTo(-5,-7); ctx.lineTo(5,-7); ctx.lineTo(0,-19); ctx.closePath(); ctx.fill();
   ctx.restore();
 }
-/* small always-on HP bar above the character so eyes stay on the action */
-function drawPlayerHP(P){
+/* small always-on HP bar above each character so eyes stay on the action */
+function drawPlayerHP(pl){
   if(G.mode==='menu') return;
-  const frac=clamp(G.hp/G.stats.maxHP,0,1);
+  const P=pl.body;
+  const frac=clamp(pl.hp/pl.stats.maxHP,0,1);
   const w=34, y=P.y-(P.mowT>0?52:44);
   ctx.fillStyle='rgba(0,0,0,0.55)';
   ctx.fillRect(P.x-w/2-1, y-1, w+2, 6);
   ctx.fillStyle = frac<0.3?'#ff5a5f':frac<0.6?'#ffd166':'#9be06f';
   ctx.fillRect(P.x-w/2, y, w*frac, 4);
 }
+/* a downed neighbor: ghost body, revive ring for teammates standing close */
+function drawDowned(pl,i){
+  const P=pl.body;
+  ctx.save(); ctx.translate(P.x,P.y); ctx.globalAlpha=0.45;
+  ctx.fillStyle='rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(0,30,17,5.5,0,0,TAU); ctx.fill();
+  ctx.rotate(1.35);
+  drawBody(ctx,Object.assign({},LOOKS.dad,LOOKS[P.champ]||{}),1,0);
+  ctx.restore();
+  ctx.globalAlpha=1;
+  if(G.players.length>1){
+    ctx.save();
+    ctx.strokeStyle=PCOLORS[i]; ctx.lineWidth=3; ctx.globalAlpha=0.8;
+    ctx.beginPath(); ctx.arc(P.x,P.y,34,-Math.PI/2,-Math.PI/2+TAU*clamp(pl.reviveT/2.5,0,1)); ctx.stroke();
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#ff5a5f'; ctx.font='bold 11px monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('DOWN',P.x,P.y-46);
+    ctx.restore();
+  }
+}
 function drawDad(P){
   const x=P.x, y=P.y, f=P.face;
-  const L=Object.assign({},LOOKS.dad,LOOKS[G.champ]||{});
+  const L=Object.assign({},LOOKS.dad,LOOKS[P.champ||G.champ]||{});
   const bob=Math.sin(P.bob)*2, step=Math.sin(P.bob);
   const blink = P.iframe>0 && Math.sin(AT*30)>0;
   ctx.save(); ctx.translate(x,y); ctx.rotate(P.lean||0); ctx.translate(0,bob*0.35);
   if(blink) ctx.globalAlpha=0.45;
   ctx.fillStyle='rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.ellipse(0,30,17,5.5,0,0,TAU); ctx.fill();
-  const S=sprite(G.champ)||sprite('dad');
+  const S=sprite(P.champ||G.champ)||sprite('dad');
   if(S){
     if(f===-1) ctx.scale(-1,1);
     ctx.drawImage(S,-34,-36,68,68);
@@ -835,7 +910,7 @@ function drawMower(P){
   ctx.strokeStyle='#33383f'; ctx.lineWidth=3;
   ctx.beginPath(); ctx.moveTo(8,2); ctx.lineTo(2,-12); ctx.stroke();
   ctx.fillStyle='#1a1a1a'; ctx.beginPath(); ctx.arc(2,-14,5,0,TAU); ctx.stroke();
-  const L=Object.assign({},LOOKS.dad,LOOKS[G.champ]||{});
+  const L=Object.assign({},LOOKS.dad,LOOKS[P.champ||G.champ]||{});
   ctx.save(); ctx.translate(-8,-14+rumble*0.5);
   ctx.fillStyle=L.shirt; roundedRectPath(ctx,-9,-8,18,16,3); ctx.fill();
   ctx.fillStyle='#e8c49a'; roundedRectPath(ctx,-6.5,-22,13,14,4); ctx.fill();
@@ -1353,7 +1428,7 @@ function drawArrows(cam,Z){
 /* ---------------- master draw ---------------- */
 function draw(){
   ctx.fillStyle='#101410'; ctx.fillRect(0,0,VW,VH);
-  const cam=G.cam, Z=zoomLevel();
+  const cam=G.cam, Z=zoomLevel()*COOPZ;
   const shx=rand(-1,1)*cam.shake, shy=rand(-1,1)*cam.shake;
   ctx.save();
   ctx.translate(VW/2,VH/2); ctx.scale(Z,Z);
@@ -1420,25 +1495,37 @@ function draw(){
     for(const p of G.pickups) drawPickup(p);
     for(const e of G.enemies) drawEnemy(e);
     // ability aura rings, drawn under the characters
-    if(G.mode!=='menu' && !G.player.dead){
-      const P=G.player;
-      if(G.abil.zapaura){
-        ctx.save(); ctx.strokeStyle='rgba(143,216,255,0.3)'; ctx.lineWidth=2;
-        ctx.setLineDash([6,10]); ctx.lineDashOffset=-AT*40;
-        ctx.beginPath(); ctx.arc(P.x,P.y,150,0,TAU); ctx.stroke(); ctx.restore();
-      }
-      if(G.stats.auraSlow>0){
-        ctx.save(); ctx.strokeStyle='rgba(196,141,240,0.28)'; ctx.lineWidth=2;
-        ctx.setLineDash([10,12]); ctx.lineDashOffset=AT*30;
-        ctx.beginPath(); ctx.arc(P.x,P.y,190,0,TAU); ctx.stroke(); ctx.restore();
+    if(G.mode!=='menu'){
+      for(const pl of G.players){
+        const P=pl.body;
+        if(P.dead) continue;
+        if(pl.abil.zapaura){
+          ctx.save(); ctx.strokeStyle='rgba(143,216,255,0.3)'; ctx.lineWidth=2;
+          ctx.setLineDash([6,10]); ctx.lineDashOffset=-AT*40;
+          ctx.beginPath(); ctx.arc(P.x,P.y,150,0,TAU); ctx.stroke(); ctx.restore();
+        }
+        if(pl.stats.auraSlow>0){
+          ctx.save(); ctx.strokeStyle='rgba(196,141,240,0.28)'; ctx.lineWidth=2;
+          ctx.setLineDash([10,12]); ctx.lineDashOffset=AT*30;
+          ctx.beginPath(); ctx.arc(P.x,P.y,190,0,TAU); ctx.stroke(); ctx.restore();
+        }
       }
     }
     for(const g of G.gnomes) drawGnome(g);
-    if(!G.player.dead){
-      if(G.player.mowT>0) drawMower(G.player);
-      else { drawDad(G.player); drawWeapons(); }
-      drawPlayerHP(G.player);
-    }
+    G.players.forEach((pl,i)=>{
+      const P=pl.body;
+      if(P.dead && G.mode!=='menu'){ drawDowned(pl,i); return; }
+      if(P.dead) return;
+      saveActive(); setActive(pl);
+      if(G.players.length>1){
+        ctx.save(); ctx.strokeStyle=PCOLORS[i]; ctx.globalAlpha=0.55; ctx.lineWidth=2.5;
+        ctx.beginPath(); ctx.ellipse(P.x,P.y+30,19,7,0,0,TAU); ctx.stroke(); ctx.restore();
+      }
+      if(P.mowT>0) drawMower(P);
+      else { drawDad(P); drawWeapons(); }
+      drawPlayerHP(pl);
+    });
+    saveActive(); setActive(G.players[0]);
     for(const b of G.bullets) drawBullet(b);
     for(const b of G.ebullets){
       drawGlow('red',b.x,b.y,13,0.6);

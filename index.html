@@ -221,6 +221,26 @@
     50%     { box-shadow:0 0 20px rgba(255,209,102,.95); }
   }
   #ultwrap.ready { animation:ultpulse 0.9s ease-in-out infinite; }
+  #lobbybar { margin:10px auto 0; width:min(760px,94vw); display:flex; gap:8px; flex-wrap:wrap;
+              justify-content:center; align-items:center; pointer-events:auto; }
+  .lobhint { font-size:11px; color:#a39c8a; letter-spacing:.5px; width:100%; text-align:center; }
+  .lobslot { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:bold;
+             color:#f4eeda; background:#191d17; border:2px solid #333a30; border-radius:9px; padding:4px 9px; }
+  .lobslot img { width:26px; height:26px; image-rendering:pixelated; }
+  #cobars { margin-top:5px; }
+  .cobar { display:flex; align-items:center; gap:6px; margin-top:3px; }
+  .coname { font-size:10px; font-weight:bold; letter-spacing:.5px; text-shadow:0 1px 3px #000; }
+  .cotrack { width:110px; height:7px; background:rgba(0,0,0,.5); border-radius:4px; overflow:hidden; }
+  .cofill { height:100%; border-radius:4px; }
+  .codown { font-size:9px; color:#ff5a5f; font-weight:bold; letter-spacing:1px; }
+  #buyfor { display:none; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+  .bflabel { font-size:10px; letter-spacing:2px; color:#7c8272; }
+  .bfchip { display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:12px;
+            font-weight:bold; color:#f4eeda; background:#191d17; border:2px solid #333a30;
+            border-radius:9px; padding:4px 10px; }
+  .bfchip img { width:26px; height:26px; image-rendering:pixelated; }
+  .bfchip.sel { box-shadow:0 0 10px rgba(255,209,102,.25); }
+  .pph { font-size:11px; font-weight:bold; letter-spacing:2px; margin-top:10px; }
   #gowave { background:linear-gradient(180deg,#ffd97a,#f0a93a); color:#221c10;
             border-bottom:3px solid #a8701c; letter-spacing:1px; }
   #shoppanels { display:flex; gap:12px; margin-top:14px; flex-wrap:wrap; }
@@ -244,6 +264,7 @@
     <div id="hptext">50 / 50</div>
     <div id="armorchip"></div>
     <div id="lvlchip"></div>
+    <div id="cobars"></div>
   </div>
   <div id="wavewrap">
     <div id="wavelabel">WAVE</div>
@@ -296,6 +317,7 @@
 <div id="champsel" class="overlay hidden">
   <h2 class="cstitle">CHOOSE YOUR NEIGHBOR</h2>
   <div class="cssub">SOMEBODY HAS TO DEAL WITH THIS</div>
+  <div id="lobbybar"></div>
   <div id="champgrid"></div>
   <div id="maprow"></div>
   <div id="diffrow"></div>
@@ -354,6 +376,7 @@
       </div>
       <div id="shopmats">🔩 0</div>
     </div>
+    <div id="buyfor"></div>
     <div id="offers"></div>
     <div id="favorpick" class="hidden"></div>
     <div id="shopfoot">
