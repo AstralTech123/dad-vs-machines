@@ -177,14 +177,69 @@ function hide(id){ document.getElementById(id).classList.add('hidden'); }
 function showDead(){
   G.mode='dead';
   document.getElementById('deadstats').innerHTML=
-    `Made it to <b>wave ${G.wave}</b> · scrapped <b>${G.kills}</b> machines · collected <b>${G.totalMats}</b> bolts<br>The machines have added this run to their training data.`;
+    `Made it to <b>wave ${G.wave}</b> · scrapped <b>${G.kills}</b> machines · collected <b>${G.totalMats}</b> bolts<br>`+
+    `SCORE: <b>${runScore()}</b> on ${DIFFS[G.diff||2].name}<br>The machines have added this run to their training data.`;
+  prepScoreRow('dead');
   show('dead');
 }
 function showWin(){
   G.mode='win';
   document.getElementById('winstats').innerHTML=
-    `AGI-PRIME unplugged on <b>wave ${FINAL_WAVE}</b> · <b>${G.kills}</b> machines scrapped · <b>${G.totalMats}</b> bolts collected<br>He clocked out at 5:00 PM sharp and did not think about it again.`;
+    `AGI-PRIME unplugged on <b>wave ${FINAL_WAVE}</b> · <b>${G.kills}</b> machines scrapped · <b>${G.totalMats}</b> bolts collected<br>`+
+    `SCORE: <b>${runScore()}</b> on ${DIFFS[G.diff||2].name}<br>He clocked out at 5:00 PM sharp and did not think about it again.`;
+  prepScoreRow('win');
   show('win');
+}
+/* ---------------- the neighborhood record book (local, no sign-in) ---------------- */
+function getScores(){ try{ return JSON.parse(localStorage.getItem('dvm_scores')||'[]'); }catch(e){ return []; } }
+function recordScore(name){
+  const s=getScores();
+  const nm=(name||'DAD').trim().slice(0,16)||'DAD';
+  s.push({ n:nm, score:runScore(), wave:G.wave, champ:CHAMPS[G.players[0].champ].name,
+    diff:DIFFS[G.diff||2].name, coop:G.players.length, d:Date.now() });
+  s.sort((a,b)=>b.score-a.score);
+  if(s.length>25) s.length=25;
+  try{
+    localStorage.setItem('dvm_scores',JSON.stringify(s));
+    localStorage.setItem('dvm_name',nm);
+  }catch(e){}
+}
+function prepScoreRow(which){
+  const inp=document.getElementById(which+'name');
+  const btn=document.getElementById(which+'submit');
+  if(!inp||!btn) return;
+  inp.value=localStorage.getItem('dvm_name')||'';
+  btn.disabled=false; btn.textContent='RECORD SCORE';
+}
+for(const which of ['dead','win','pause']){
+  const btn=document.getElementById(which+'submit');
+  if(btn) btn.addEventListener('click',function(){
+    if(this.disabled) return;
+    recordScore(document.getElementById(which+'name').value);
+    this.disabled=true; this.textContent='✔ RECORDED';
+    sfx.buy(); toast('🏆 Score recorded in the neighborhood record book');
+  });
+}
+function buildRecords(){
+  const s=getScores();
+  document.getElementById('recordsbody').innerHTML = s.length===0
+    ? '<p style="color:#a39c8a">No runs recorded yet on this device. Go make history.</p>'
+    : '<table>'+s.slice(0,10).map((r,i)=>
+        `<tr><td class="sv">#${i+1}</td><td class="sv">${r.n.replace(/[<>&]/g,'')}</td>`+
+        `<td>${r.score}</td><td>wave ${r.wave}</td><td>${r.champ}${r.coop>1?' +'+(r.coop-1):''}</td><td>${r.diff}</td></tr>`).join('')+'</table>';
+}
+document.getElementById('mrecbtn').addEventListener('click',()=>{ sfx.click(); buildRecords(); show('records'); });
+document.getElementById('recordsclose').addEventListener('click',()=>{ sfx.click(); hide('records'); });
+/* tap an owned item icon anywhere to see what it does */
+function wireInvIcons(container){
+  container.querySelectorAll('.invit').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const it=ITEMS[el.dataset.k]; if(!it) return;
+      const stats=fmtItemStats(it);
+      toast(it.icon+' '+it.name+': '+(stats?stats+' · ':'')+(it.note||''));
+      sfx.click();
+    });
+  });
 }
 /* ---------------- shared stat sheet + guide ---------------- */
 function statsHTML(full){
@@ -197,15 +252,19 @@ function statsHTML(full){
       rows.push('🎯 '+(c.wonly
         ? 'Uses '+c.wonly.map(s=>s.toUpperCase()).join(' + ')+' weapons ONLY. Other class damage stats do nothing for you.'
         : c.wpref ? 'Prefers '+c.wpref.toUpperCase()+' weapons (bonus class damage).' : 'Uses any weapon.'));
+      const wants=(ROLE_STATS[c.role]||[]).map(k=>STAT_NAMES[k]||k);
+      if(c.wpref) wants.unshift(STAT_NAMES[c.wpref+'Mul']);
+      rows.push('🛒 Shop for: '+[...new Set(wants)].join(', ')+'. Cards marked ★ GOOD FOR YOU fit your build.');
     }
     if(c&&c.perk) rows.push('★ '+c.perkDesc);
     rows.push('🚜 Mower ultimate: kills charge it ('+G.player.ult+'/'+st.ultNeed+'). Press E or tap the bar when full.');
     rows.push('🔩 Bolts collected this run: '+(G.active&&G.active.earned||0)+' (the wallet is shared, this is your contribution)');
     for(const k in G.itemCounts){ const it=ITEMS[k]; if(it&&it.ability) rows.push(it.icon+' '+it.name+': '+it.note); }
     for(const k in G.yard){ if(G.yard[k]>0) rows.push(YARD_UPGRADES[k].icon+' '+yardName(k)+' Lv'+G.yard[k]); }
-    const inv=Object.entries(G.itemCounts).map(([k,n])=> ITEMS[k]? ITEMS[k].icon+(n>1?'×'+n:'') : '').join(' ');
+    const inv=Object.entries(G.itemCounts).map(([k,n])=> ITEMS[k]?
+      `<span class="invit" data-k="${k}" title="${ITEMS[k].name}">${ITEMS[k].icon}${n>1?'×'+n:''}</span>` : '').join(' ');
     extra='<br><span class="sv">ABILITIES</span><br>'+rows.join('<br>')+
-      (inv?'<br><span class="sv">ITEMS OWNED</span> '+inv:'');
+      (inv?'<br><span class="sv">ITEMS OWNED</span> (tap one to see what it does)<br>'+inv:'');
   }
   return `<h3>${(CHAMPS[G.champ]||CHAMPS.dad).name.toUpperCase()} · LEVEL ${G.level||1} · ${DF().name}</h3>
     Max HP <span class="sv">${st.maxHP}</span> · Regen <span class="sv">${st.regen}/4s</span> ·

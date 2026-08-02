@@ -523,7 +523,7 @@ function killEnemy(e){
     for(let m=0;m<mats;m++) G.pickups.push({ x:e.x+rand(-10,10), y:e.y+rand(-10,10),
       vx:rand(-70,70), vy:rand(-90,-20), mag:false, t:0, kind:'bolt', val:1 });
   }
-  if(e.key==='boss'||e.key==='algo'){ onBossDown(); }
+  if(e.def.boss){ onBossDown(); }
   updateHUD();
 }
 function droneBlast(e){
@@ -1170,6 +1170,11 @@ function endWaveCleanup(){
   floatText(G.player.x,G.player.y-56,'WAVE BONUS +'+bonus,'#9be06f',true);
   sfx.wave();
 }
+/* difficulty-weighted run score for the record book */
+function runScore(){
+  const dm={1:0.6, 2:1, 3:1.4, 4:1.9, 5:2.5}[G.diff||2]||1;
+  return Math.round((G.totalMats*2 + G.kills*5 + G.level*50 + G.wave*100)*dm);
+}
 function onBossDown(){
   document.getElementById('bosswrap').style.display='none';
   G.boss=null;
@@ -1475,13 +1480,14 @@ function renderShop(){
       const gr=document.createElement('div');
       gr.className='colgarage';
       const inv=Object.entries(pl.itemCounts).map(([k,n])=>
-        ITEMS[k]? `<span title="${ITEMS[k].name} ×${n}">${ITEMS[k].icon}${n>1?'×'+n:''}</span>`:'').join(' ');
+        ITEMS[k]? `<span class="invit" data-k="${k}" title="${ITEMS[k].name} ×${n}">${ITEMS[k].icon}${n>1?'×'+n:''}</span>`:'').join(' ');
       const cch=CHAMPS[pl.champ];
       const wnote=cch.wonly? cch.wonly.map(s=>s.toUpperCase()).join('+')+' ONLY' : cch.wpref? 'likes '+cch.wpref.toUpperCase() : 'any weapon';
       gr.innerHTML='<span class="glabel">GARAGE ('+wnote+')</span> '+garageHTML(pl)
         +(inv?'<br><span class="glabel">ITEMS</span> '+inv:'');
       gr.querySelectorAll('.sellbtn').forEach(b=>
         b.addEventListener('click',()=>sellWeapon(pl,Number(b.dataset.i))));
+      wireInvIcons(gr);
       col.appendChild(gr);
       box.appendChild(col);
     });
@@ -1500,6 +1506,7 @@ function renderShop(){
   wpn.style.display=coop?'none':'';
   if(!coop){
     sp.innerHTML=statsHTML(true);
+    wireInvIcons(sp);
     const pl=G.players[0];
     wpn.innerHTML=`<h3>GARAGE (${pl.weapons.length}/${MAX_SLOTS} slots)</h3>
       ${garageHTML(pl)}<br>Buy two of the same weapon + tier and they combine. Selling pays half.`;

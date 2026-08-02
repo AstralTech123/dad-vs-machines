@@ -56,6 +56,10 @@ const ROLE_STATS={
   SUPPORT:['luck','pickup'],
   'ALL-ROUNDER':['dmg','atk'],
 };
+const STAT_NAMES={ maxHP:'Max HP', armor:'Armor', regen:'Regen', thorns:'Thorns', lifesteal:'Lifesteal',
+  burgerMul:'Burger Heal', meleeMul:'Melee Dmg', move:'Move Speed', atk:'Attack Speed',
+  rangedMul:'Ranged Dmg', crit:'Crit', critMul:'Crit Dmg', rangeMul:'Range',
+  blastMul:'Blast Dmg', areaMul:'Area Size', luck:'Luck', pickup:'Pickup', dmg:'Damage' };
 function goodForChamp(champ,it){
   const c=CHAMPS[champ]; if(!c) return false;
   const st=it.stats||{};

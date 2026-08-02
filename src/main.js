@@ -254,7 +254,10 @@ function handlePadsLobby(){
 function togglePause(){
   if(G.mode==='play'){
     G.mode='pause';
-    document.getElementById('pausestats').innerHTML=pauseStatsAll();
+    const ps=document.getElementById('pausestats');
+    ps.innerHTML=pauseStatsAll();
+    wireInvIcons(ps);
+    prepScoreRow('pause');
     show('pause');
   }
   else if(G.mode==='pause'){ G.mode='play'; hide('pause'); }
