@@ -63,9 +63,17 @@ function startWave(n){
   G.grillT=Math.min(G.grillT, 10); G.burgerOut=false; G.dropT=rand(12,20);
   G.eliteQ=[];
   const dur=WAVE_DUR[n];
-  if(n>=2){ G.eliteQ.push(dur*0.5);
-    if(n>=5) G.eliteQ.push(dur*0.24);
-    if(n>=8) G.eliteQ.unshift(dur*0.72); }
+  /* elites scale with the wave AND the difficulty: 1 at wave 2, up to 6 per
+     wave deep in a Robot Uprising run. entries are waveTime thresholds,
+     descending, spread across the wave */
+  if(n>=2){
+    let ecount = 1 + (n>=5?1:0) + (n>=8?1:0) + Math.floor(Math.max(0,n-10)/4);
+    if(G.diff>=4) ecount++;
+    if(G.diff>=5) ecount++;
+    ecount=Math.min(6,ecount);
+    if(ecount===1) G.eliteQ.push(dur*0.5);
+    else for(let i=0;i<ecount;i++) G.eliteQ.push(dur*(0.8 - 0.65*i/(ecount-1)));
+  }
   // mini fridge: a cold burger per fridge owned, waiting at wave start
   const fridges=G.players.reduce((s,q)=>s+(q.abil.fridge||0),0);
   for(let f=0; f<fridges; f++)
@@ -93,8 +101,8 @@ function startWave(n){
       G.contract={ def, n:need, txt:def.txt.replace('#',need), prog:0, dmg:false };
     }
   }
-  // rare bolt courier from wave 4 on
-  G.courierT = (n>=4 && Math.random()<0.3) ? rand(8, WAVE_DUR[n]*0.6) : undefined;
+  // rare bolt courier from wave 4 on, a little busier as the run deepens
+  G.courierT = (n>=4 && Math.random()<Math.min(0.5, 0.25+0.02*n)) ? rand(8, WAVE_DUR[n]*0.6) : undefined;
   if(G.contract){
     const ctxt='🧹 Optional chore: '+G.contract.txt+' (pays bolts and XP)';
     setTimeout(()=>{ if(G.contract) toast(ctxt); }, G.favorApplied?2600:800);
@@ -185,6 +193,7 @@ function queueElite(){
   let kinds=['groomba'];
   if(w>=4) kinds.push('printer');
   if(w>=6) kinds.push('mother');
+  if(w>=9) kinds.push('vend');
   const ekind=pick(kinds);
   const a=rand(0,TAU), r=rand(520,820);
   let ex=clamp(G.player.x+Math.cos(a)*r, 100, ARENA_W-100);

@@ -454,7 +454,9 @@ function buildGuide(){
     the kiddie pool slows everyone in it · the sprinkler damages machines · mud slows you ·
     flamingos tip over. The yard is on your side, use it.</p>
     <h3>THE MACHINES</h3>
-    <p>Eleven types, from swarming Chatbots to shielded Firewall bots and healing IT Support.
+    <p>Thirteen types, from swarming Chatbots to charging E-Scooters, artillery Thermostats,
+    tanky Smart Fridges, shielded Firewall bots, and healing IT Support.
+    Elites arrive more often the deeper the run and the meaner the difficulty.
     Golden elites roam with big loot and often drop a mystery gear box, follow the edge arrows
     to find them. Bosses always drop RARE or better gear. Airdrop crates land on a flare. From wave 6, machines can spawn with traits: TURBO, ARMORED, VOLATILE, GIANT,
     LEECH. They glow, they are labeled, and they pay 50% extra loot and XP. Bosses arrive when
@@ -1445,6 +1447,50 @@ function drawEnemy(e){
     drawGlow('blue',r*0.5,0,r*1.1,0.28);
     ctx.fillStyle='#6ec6ff';
     ctx.fillRect(r*0.44,-r*0.6,3,3); ctx.fillRect(r*0.44,0,3,3); ctx.fillRect(r*0.44,r*0.55,3,3);
+  } else if(e.key==='scoot'){
+    ctx.rotate(Math.atan2(G.player.y-y,G.player.x-x));
+    ctx.fillStyle='#1f6f6b'; roundedRectPath(ctx,-r*0.9,-r*0.25,r*1.8,r*0.5,3); ctx.fill();
+    ctx.strokeStyle='#2fa39c'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(r*0.75,0); ctx.lineTo(r*0.75,-r*0.9);
+    ctx.moveTo(r*0.45,-r*0.9); ctx.lineTo(r*1.05,-r*0.9); ctx.stroke();
+    ctx.fillStyle='#20242b';
+    ctx.beginPath(); ctx.arc(-r*0.7,r*0.35,4.5,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(r*0.7,r*0.35,4.5,0,TAU); ctx.fill();
+    drawGlow(e.state===1?'red':'orange',0,-r*0.1,8,0.6);
+    ctx.fillStyle=e.state===1?'#ff5a5f':'#ffb26b'; ctx.beginPath(); ctx.arc(0,-r*0.1,3,0,TAU); ctx.fill();
+  } else if(e.key==='thermo'){
+    ctx.translate(0,bob);
+    ctx.fillStyle='#20242b'; ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.fill();
+    ctx.strokeStyle='#59626d'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.stroke();
+    ctx.strokeStyle='#394047'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(0,0,r*0.72,0,TAU); ctx.stroke();
+    const tw=e.windT>0? (1-e.windT/0.5) : 0;
+    drawGlow(tw>0?'red':'orange',0,0,12+tw*8,0.55+0.4*tw);
+    ctx.fillStyle=tw>0?'#ff5a5f':'#ff9a4d'; ctx.font='bold 10px monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('88°',0,1);
+  } else if(e.key==='frido'){
+    ctx.translate(0,bob*0.4);
+    ctx.fillStyle='#c7ccd4'; roundedRectPath(ctx,-r*0.72,-r,r*1.44,r*2,5); ctx.fill();
+    ctx.strokeStyle='#8b93a3'; ctx.lineWidth=2; roundedRectPath(ctx,-r*0.72,-r,r*1.44,r*2,5); ctx.stroke();
+    ctx.strokeStyle='#59626d'; ctx.beginPath(); ctx.moveTo(-r*0.72,-r*0.25); ctx.lineTo(r*0.72,-r*0.25); ctx.stroke();
+    ctx.fillStyle='#59626d'; ctx.fillRect(r*0.35,-r*0.6,4,r*0.3); ctx.fillRect(r*0.35,0,4,r*0.5);
+    drawGlow('blue',-r*0.25,-r*0.55,9,0.6);
+    ctx.fillStyle='#8fd8ff'; ctx.fillRect(-r*0.42,-r*0.68,r*0.34,r*0.26);
+    drawGlow('red',0,r*0.45,8,0.5);
+    ctx.fillStyle='#ff5a5f'; ctx.beginPath(); ctx.arc(0,r*0.45,2.8,0,TAU); ctx.fill();
+  } else if(e.key==='vend'){
+    ctx.translate(0,bob*0.3);
+    drawGlow('gold',0,0,r*1.7,0.4);
+    ctx.fillStyle='#8a2f35'; roundedRectPath(ctx,-r*0.8,-r,r*1.6,r*2,5); ctx.fill();
+    ctx.strokeStyle='#d4af37'; ctx.lineWidth=2.5; roundedRectPath(ctx,-r*0.8,-r,r*1.6,r*2,5); ctx.stroke();
+    ctx.fillStyle='#1d2025'; roundedRectPath(ctx,-r*0.55,-r*0.75,r*0.7,r*1.3,3); ctx.fill();
+    for(let row=0;row<3;row++){
+      ctx.fillStyle=['#ffd166','#9be06f','#ff9a4d'][row];
+      for(let cq=0;cq<2;cq++) ctx.fillRect(-r*0.48+cq*r*0.3, -r*0.65+row*r*0.4, r*0.2, r*0.24);
+    }
+    const vw=e.windT>0? (1-e.windT/0.5) : 0;
+    drawGlow(vw>0?'red':'orange',r*0.45,-r*0.2,9,0.5+0.4*vw);
+    ctx.fillStyle=vw>0?'#ff5a5f':'#ffb26b'; ctx.beginPath(); ctx.arc(r*0.45,-r*0.2,3,0,TAU); ctx.fill();
   } else if(e.key==='printer'){
     ctx.translate(0,bob*0.4);
     ctx.fillStyle='#b9b2a2'; roundedRectPath(ctx,-r,-r*0.7,r*2,r*1.4,5); ctx.fill();
