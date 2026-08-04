@@ -1575,8 +1575,11 @@ function renderShop(){
       col.style.borderColor=PCOLORS[pi];
       const head=document.createElement('div');
       head.className='shophead2'; head.style.color=PCOLORS[pi];
+      head.style.cursor='pointer';
+      head.title='Tap for the character sheet';
       head.innerHTML=`<img src="${champPortrait(pl.champ)}" alt=""> P${pi+1} ${CHAMPS[pl.champ].name}`+
-        `<span class="shopmini">HP ${Math.ceil(pl.hp)}/${pl.stats.maxHP} · 🔩${pl.earned||0} collected${pl.pad!==null?' · dpad + A':''}</span>`;
+        `<span class="shopmini">HP ${Math.ceil(pl.hp)}/${Math.round(pl.stats.maxHP)} · 🔩${pl.earned||0} collected · tap for sheet${pl.pad!==null?' · dpad + A':''}</span>`;
+      head.addEventListener('click',()=>openCharSheet(pl));
       col.appendChild(head);
       pl.offers.forEach((o,i)=> col.appendChild(offerCard(pl,pi,o,i,true)));
       const rb=document.createElement('button');
@@ -1611,9 +1614,11 @@ function renderShop(){
     sp.innerHTML=statsHTML(true);
     wireInvIcons(sp);
     const pl=G.players[0];
-    wpn.innerHTML=`<h3>GEAR</h3>${gearHTML(pl)}<br>`+
+    wpn.innerHTML=`<h3>GEAR</h3><button class="csopen">🧍 CHARACTER SHEET: all slots + backpack</button><br>`+
+      `${gearHTML(pl)}<br>`+
       `Copies of a piece you own count toward EMPOWERING it. Selling pays half. ⇣ moves a piece to the backpack.`;
     wireGearButtons(wpn,pl);
+    wpn.querySelector('.csopen').addEventListener('click',()=>openCharSheet(pl));
   }
   document.getElementById('yardpanel').innerHTML=
     `<h3>${MAPKEY==='office'?'FACILITIES':'YARD WORK'} (lasts the whole run)</h3>`+

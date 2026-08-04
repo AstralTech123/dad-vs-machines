@@ -270,6 +270,96 @@ function wireInvIcons(container){
     });
   });
 }
+/* ---------------- character sheet: tap your dad, see your build ----------------
+   opens from the shop. left column head-to-toe, right column jewelry, weapons
+   at the bottom of each. tap any slot or backpack piece for the full story. */
+const CS={ pl:null, sel:null };
+const CS_LEFT=[['head','HEAD'],['chest','CHEST'],['legs','LEGS'],['feet','FEET'],['w1','WEAPON 1']];
+const CS_RIGHT=[['neck','NECK'],['ring1','RING 1'],['ring2','RING 2'],['trinket','TRINKET'],['w2','WEAPON 2']];
+function openCharSheet(pl){ CS.pl=pl; CS.sel=null; renderCharSheet(); show('charsheet'); sfx.click(); }
+function closeCharSheet(){ hide('charsheet'); CS.pl=null; CS.sel=null; }
+document.getElementById('csclose').addEventListener('click',()=>{ sfx.click(); closeCharSheet(); });
+function gearTypeTag(d){ return d.cls ? (d.cls==='blast'?'EXPLOSIVE':d.cls.toUpperCase())+' WEAPON' : SLOT_LABEL[slotsFor(d)[0]]; }
+function csStatLines(d,emp){
+  const m=emp?EMP_STATMUL:1;
+  return Object.entries(d.stats||{}).map(([k,v])=>{
+    const vv=Math.round(v*m*100)/100;
+    return STAT_FMT[k]? STAT_FMT[k](vv) : k+' '+vv;
+  });
+}
+function csSlotDiv(sk,label){
+  const pl=CS.pl, g=pl.gear[sk];
+  const div=document.createElement('div');
+  div.className='csslot'+(g?'':' gempty')+(CS.sel&&CS.sel.loc==='slot'&&CS.sel.ref===sk?' sel':'');
+  if(g){
+    const d=gearDef(g);
+    div.style.borderColor=g.emp?'#ffd166':RARITY[d.rar].color;
+    div.innerHTML=`<span class="ic">${ICONURL[g.key]?`<img src="${ICONURL[g.key]}" alt="">`:(d.icon||'❔')}</span>`+
+      `<span><span class="lb">${label}${g.emp?' ⭐':''}</span><br><span class="nm">${d.name}</span></span>`;
+  } else {
+    div.innerHTML=`<span class="ic" style="opacity:.5">·</span><span class="lb">${label}</span>`;
+  }
+  div.addEventListener('click',()=>{ CS.sel={loc:'slot',ref:sk}; renderCharSheet(); sfx.click(); });
+  return div;
+}
+function renderCharSheet(){
+  const pl=CS.pl; if(!pl) return;
+  const c=CHAMPS[pl.champ]||CHAMPS.dad;
+  document.getElementById('csportrait').src=champPortrait(pl.champ);
+  document.getElementById('csname').textContent=c.name.toUpperCase();
+  document.getElementById('csrole').textContent=c.role+(c.wpref?' · LIKES '+(c.wpref==='blast'?'EXPLOSIVE':c.wpref.toUpperCase())+' WEAPONS':'');
+  const wants=(ROLE_STATS[c.role]||[]).map(k=>STAT_NAMES[k]||k);
+  if(c.wpref) wants.unshift(STAT_NAMES[c.wpref+'Mul']);
+  document.getElementById('cswants').textContent='STACK THESE: '+[...new Set(wants)].join(' · ');
+  const L=document.getElementById('csleft'); L.innerHTML='';
+  for(const [sk,lb] of CS_LEFT) L.appendChild(csSlotDiv(sk,lb));
+  const R=document.getElementById('csright'); R.innerHTML='';
+  for(const [sk,lb] of CS_RIGHT) R.appendChild(csSlotDiv(sk,lb));
+  document.getElementById('csfigure').innerHTML=`<img src="${champPortrait(pl.champ)}" alt="">`;
+  document.getElementById('cspackn').textContent='('+pl.pack.length+'/'+pl.packMax+')';
+  const PK=document.getElementById('cspack'); PK.innerHTML='';
+  pl.pack.forEach((g,i)=>{
+    const d=gearDef(g);
+    const el=document.createElement('div');
+    el.className='cspk'+(CS.sel&&CS.sel.loc==='pack'&&CS.sel.ref===i?' sel':'');
+    el.style.borderColor=g.emp?'#ffd166':RARITY[d.rar].color;
+    el.innerHTML=(ICONURL[g.key]?`<img src="${ICONURL[g.key]}" alt="">`:(d.icon||'❔'))+(g.emp?'<span class="st">⭐</span>':'');
+    el.addEventListener('click',()=>{ CS.sel={loc:'pack',ref:i}; renderCharSheet(); sfx.click(); });
+    PK.appendChild(el);
+  });
+  for(let i=pl.pack.length;i<pl.packMax;i++){
+    const el=document.createElement('div'); el.className='cspk gempty'; PK.appendChild(el);
+  }
+  renderCsDetail();
+}
+function renderCsDetail(){
+  const pl=CS.pl, box=document.getElementById('csdetail');
+  if(!CS.sel){ box.innerHTML='<span style="color:#7c8272">Tap a slot or a backpack piece to inspect it. A gold border means EMPOWERED.</span>'; return; }
+  const {loc,ref}=CS.sel;
+  const g = loc==='slot' ? pl.gear[ref] : pl.pack[ref];
+  if(!g){
+    box.innerHTML=`<span style="color:#7c8272">Empty ${SLOT_LABEL[ref]||''} slot. Every shop card is tagged with the slot it fills.</span>`;
+    return;
+  }
+  const d=gearDef(g), r=RARITY[d.rar];
+  const lines=csStatLines(d,g.emp).join(' · ');
+  const weapLine=d.cls?`DMG ${Math.round(d.dmg*(g.emp?EMP_DMG:1))} · every ${(d.cd*(g.emp?EMP_CD:1)).toFixed(2)}s${d.aoe?' · blast radius '+Math.round(d.aoe):''}${d.pierce?' · pierces '+(d.pierce>10?'everything':d.pierce):''}`:'';
+  const curse=g.curse?`<br><span style="color:#ff5a5f">CURSE: ${STAT_FMT[g.curse[0]]?STAT_FMT[g.curse[0]](g.curse[1]):g.curse[0]+' '+g.curse[1]}</span>`:'';
+  const copies=g.emp?'⭐ EMPOWERED':`copies ${g.copies}/${EMPOWER_NEED[d.rar]} to empower`;
+  const good=goodForChamp(pl.champ,d)?' · <span style="color:#9be06f">★ good for '+(CHAMPS[pl.champ].name)+'</span>':'';
+  box.innerHTML=`<span class="dname">${d.icon||''} ${d.name}</span> `+
+    `<span class="dtag" style="color:${r.color}">${r.name} · ${gearTypeTag(d)}</span><br>`+
+    (weapLine?`<span style="color:#ece7db">${weapLine}</span><br>`:'')+
+    (lines?`<span style="color:#ece7db">${lines}</span><br>`:'')+
+    `<span>${d.note||d.desc||''}</span>${curse}<br>`+
+    `<span style="color:#a39c8a">${copies}${good}</span>`+
+    `<div class="dbtns"></div>`;
+  const btns=box.querySelector('.dbtns');
+  const mkB=(txt,fn)=>{ const b=document.createElement('button'); b.textContent=txt; b.addEventListener('click',fn); btns.appendChild(b); };
+  if(loc==='slot') mkB('⇣ TO BACKPACK',()=>{ uiUnequip(pl,ref); CS.sel=null; renderCharSheet(); });
+  else mkB('⇡ EQUIP',()=>{ uiEquipFromPack(pl,ref); CS.sel=null; renderCharSheet(); });
+  mkB('SELL 🔩'+sellValue(g),()=>{ sellGear(pl,loc==='slot'?'slot':'pack',ref); CS.sel=null; renderCharSheet(); });
+}
 /* ---------------- shared stat sheet + guide ---------------- */
 function statsHTML(full){
   const st=G.stats;
