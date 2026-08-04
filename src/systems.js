@@ -339,6 +339,13 @@ function damagePlayer(raw){
         hitEnemy(e, G.stats.thorns, Math.atan2(e.y-P.y,e.x-P.x), 160, false);
     }
   }
+  if(G.abil && G.abil.nova>0 && Math.random()<0.25*G.abil.nova){
+    ringPart(P.x,P.y,130); sfx.boom(); G.cam.shake=Math.min(18,G.cam.shake+6);
+    for(const e of [...G.enemies]){
+      if(dist2(P.x,P.y,e.x,e.y)<130*130)
+        hitEnemy(e, 4, Math.atan2(e.y-P.y,e.x-P.x), 340, false);
+    }
+  }
   if(G.contract) G.contract.dmg=true;
   if(G.hp<=0){ G.hp=0; P.dead=true; P.deadT=0; playerDeathFX(); }
   updateHUD();
@@ -508,6 +515,10 @@ function hitEnemy(e, dmg, ang, knock, crit){
     if(G.abil.burn>0 && !e.def.boss && Math.random()<0.15*G.abil.burn){
       e.burnT=2; e.burnDps=3*G.abil.burn;
     }
+    if(G.abil.chill>0 && !e.def.boss && Math.random()<0.2*G.abil.chill){
+      e.chillT=1.5;
+      for(let k=0;k<3;k++) spawnPart(e.x,e.y,rand(0,TAU),rand(20,60),0.3,'#8fd8ff',3);
+    }
   }
   if(e.hp<=0) killEnemy(e);
 }
@@ -524,6 +535,11 @@ function killEnemy(e){
   const idx=G.enemies.indexOf(e); if(idx<0) return;
   G.enemies.splice(idx,1);
   G.kills++;
+  if(G.abil && G.abil.goldtouch>0 && Math.random()<0.15*G.abil.goldtouch){
+    for(let m=0;m<2;m++) G.pickups.push({ x:e.x+rand(-8,8), y:e.y+rand(-8,8),
+      vx:rand(-80,80), vy:rand(-100,-30), mag:false, t:0, kind:'bolt', val:1 });
+    floatText(e.x,e.y-24,'MIDAS','#ffd166',false);
+  }
   gainXP(Math.round((e.def.boss ? 30 : e.def.elite ? 12 : e.def.mats)*(e.trait?1.5:1)));
   if(e.volatile){
     spawnPart(e.x,e.y,0,0,0.2,'flash',60);
@@ -636,12 +652,16 @@ function updateEnemies(dt){
       if(Math.random()<dt*8) spawnPart(e.x,e.y,rand(0,TAU),rand(10,50),0.3,'#ff9a4d',2);
       if(e.hp<=0){ killEnemy(e); continue; }
     }
+    if(e.chillT>0){
+      e.chillT-=dt;
+      if(Math.random()<dt*5) spawnPart(e.x,e.y,rand(0,TAU),rand(8,30),0.25,'#8fd8ff',2);
+    }
     let auraF=1;
     for(const q of G.players){
       if(!q.body.dead && q.stats.auraSlow && dist2(e.x,e.y,q.body.x,q.body.y)<190*190)
         auraF=Math.min(auraF,1-q.stats.auraSlow);
     }
-    const sp = e.spd*mudF*auraF;
+    const sp = e.spd*mudF*auraF*(e.chillT>0?0.55:1);
     const ai=e.def.ai;
     if(ai==='chase'){
       e.x+=Math.cos(a)*sp*dt; e.y+=Math.sin(a)*sp*dt;
@@ -1291,11 +1311,14 @@ function onBossDown(){
   G.cam.shake=24; sfx.boom();
 }
 
-/* ---------------- shop ---------------- */
+/* ---------------- shop ----------------
+   prices climb with the wave AND your level: bolt income scales all run, so
+   gear has to keep pace or late shops become an all-you-can-reroll buffet */
 function priceOf(kind,key){
+  const lvlMul = 1 + 0.05*((G.level||1)-1);
   if(kind==='w')
-    return Math.max(1, Math.round(WEAPONS[key].price * (1+0.14*(G.wave-1)) * G.stats.priceMul));
-  return Math.max(1, Math.round(ITEMS[key].price * (1+0.12*(G.wave-1)) * G.stats.priceMul));
+    return Math.max(1, Math.round(WEAPONS[key].price * (1+0.14*(G.wave-1)) * lvlMul * G.stats.priceMul));
+  return Math.max(1, Math.round(ITEMS[key].price * (1+0.12*(G.wave-1)) * lvlMul * G.stats.priceMul));
 }
 /* ---------------- gear: equip, unequip, empower, backpack ----------------
    stats apply on equip and reverse on unequip, so swapping is always safe.
@@ -1511,7 +1534,11 @@ function buyYard(key){
   saveActive();
   sfx.buy(); renderShop(); updateHUD();
 }
-function rerollCostFor(pl){ return Math.max(1, Math.round((G.wave + (pl.rerolls||0)*2)*pl.stats.rerollMul)); }
+/* each reroll this shop costs ~55% more than the last: one or two targeted
+   rerolls are fine, fishing for legendaries is ruinous */
+function rerollCostFor(pl){
+  return Math.max(2, Math.round((2 + G.wave*1.5) * Math.pow(1.55, pl.rerolls||0) * pl.stats.rerollMul));
+}
 function rerollFor(pl){
   const c=rerollCostFor(pl);
   if(G.mats<c) return;
@@ -1613,22 +1640,30 @@ function offerCard(pl,pi,o,i,small){
   });
   return div;
 }
-/* equipment + backpack panel. every icon is tappable for its tooltip */
+/* equipment + backpack panel: one aligned row per slot, rarity color on the
+   left edge, tap any icon for its tooltip */
+function gearRowHTML(label,g,btns){
+  if(!g) return `<div class="grow gempty"><span class="gslot">${label}</span><span class="gname">–</span></div>`;
+  const d=gearDef(g), col=g.emp?'#ffd166':RARITY[d.rar].color;
+  return `<div class="grow" style="border-left-color:${col}">`+
+    `<span class="gslot">${label}</span>${gearIconHTML(g.key)}`+
+    `<span class="gname" style="color:${col}">${d.name}${g.emp?' ⭐':''}</span>${btns}</div>`;
+}
 function gearHTML(pl){
-  const slotBits=GEAR_SLOTS.map(([sk,label])=>{
+  const rows=GEAR_SLOTS.map(([sk,label])=>{
     const g=pl.gear[sk];
-    if(!g) return `<span class="wrow gempty" title="${label}">${label}: –</span>`;
-    const star=g.emp?'⭐':'';
-    return `<span class="wrow">${gearIconHTML(g.key)}${star}`+
-      `<button class="unqbtn" data-sk="${sk}">⇣</button>`+
-      `<button class="sellbtn" data-loc="slot" data-ref="${sk}">🔩${sellValue(g)}</button></span>`;
-  }).join(' ');
-  const packBits=pl.pack.map((g,i)=>
-    `<span class="wrow">${gearIconHTML(g.key)}${g.emp?'⭐':''}`+
-    `<button class="eqbtn" data-i="${i}">EQUIP</button>`+
-    `<button class="sellbtn" data-loc="pack" data-ref="${i}">🔩${sellValue(g)}</button></span>`).join(' ');
-  return `<span class="glabel">EQUIPPED</span> ${slotBits}<br>`+
-    `<span class="glabel">BACKPACK (${pl.pack.length}/${pl.packMax})</span> ${packBits||'(empty)'}`;
+    const btns=g?`<span class="gbtns"><button class="unqbtn" data-sk="${sk}" title="Move to backpack">⇣</button>`+
+      `<button class="sellbtn" data-loc="slot" data-ref="${sk}">🔩${sellValue(g)}</button></span>`:'';
+    return gearRowHTML(label,g,btns);
+  }).join('');
+  const packRows=pl.pack.map((g,i)=>{
+    const btns=`<span class="gbtns"><button class="eqbtn" data-i="${i}">EQUIP</button>`+
+      `<button class="sellbtn" data-loc="pack" data-ref="${i}">🔩${sellValue(g)}</button></span>`;
+    return gearRowHTML('PACK',g,btns);
+  }).join('');
+  return `<div class="gearrows">${rows}</div>`+
+    `<div class="glabel" style="margin-top:8px;letter-spacing:2px;font-size:9px;color:#7c8272">BACKPACK (${pl.pack.length}/${pl.packMax})</div>`+
+    (packRows?`<div class="gearrows">${packRows}</div>`:`<span style="color:#5c6455;font-size:11px">(empty)</span>`);
 }
 function wireGearButtons(container,pl){
   container.querySelectorAll('.sellbtn').forEach(b=>

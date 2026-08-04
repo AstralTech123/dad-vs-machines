@@ -226,10 +226,20 @@
   .favcard img { width:44px; height:44px; image-rendering:pixelated; }
   .favcard .fname { font-weight:bold; font-size:13px; color:#f4eeda; margin-top:2px; }
   .favcard .fdesc { font-size:11.5px; color:#aca595; margin-top:4px; line-height:1.4; }
-  #weappanel .sellbtn { cursor:pointer; font-family:inherit; font-size:10px; font-weight:bold; border:none;
-                        border-radius:6px; padding:3px 6px; margin:0 8px 0 4px; color:#2a1a0c;
-                        background:#e0a34d; border-bottom:2px solid #9c6a24; }
-  #weappanel .wrow { white-space:nowrap; line-height:2.1; }
+  /* gear panel: one aligned row per slot, rarity color on the left edge */
+  .gearrows { display:grid; grid-template-columns:repeat(auto-fit,minmax(185px,1fr)); gap:4px 8px; margin-top:4px; }
+  .grow { display:flex; align-items:center; gap:5px; background:rgba(20,25,18,.75);
+          border-left:3px solid #3a4136; border-radius:6px; padding:2px 6px; min-height:27px; }
+  .grow.gempty { opacity:.5; }
+  .gslot { width:46px; flex:none; font-size:8.5px; letter-spacing:1px; color:#7c8272; }
+  .gname { flex:1; font-size:11px; color:#ece7db; line-height:1.2; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; }
+  .gbtns { display:flex; gap:4px; flex:none; }
+  .gbtns button { cursor:pointer; font-family:inherit; font-size:9.5px; font-weight:bold; border:none;
+                  border-radius:5px; padding:2px 6px; }
+  .gbtns .sellbtn { color:#2a1a0c; background:#e0a34d; border-bottom:2px solid #9c6a24; }
+  .gbtns .unqbtn, .gbtns .eqbtn { color:#ece7db; background:#3a4136; border-bottom:2px solid #252a21; }
+  .gearrows .invit img { width:20px; height:20px; vertical-align:middle; }
   #yardpanel .yrow { margin-bottom:8px; }
   #yardpanel .ydesc { color:#aca595; }
   #yardpanel .yardbtn { cursor:pointer; font-family:inherit; font-size:11px; font-weight:bold; border:none;

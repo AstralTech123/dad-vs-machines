@@ -179,6 +179,38 @@ const ITEMS = {
   duffel:   { name:'Hiking Duffel', icon:'🎒', slot:'trinket', rar:3, price:32, stats:{pickup:20}, ability:'bigpack', note:'First equip adds 4 backpack slots for the run. The straps mean business.' },
   staticband:{ name:'Static Wristband', icon:'⌚', slot:'ring', rar:4, price:54, stats:{crit:0.03}, ability:'static', note:'Hits may arc lightning to nearby machines. Science.' },
   hotsauce: { name:'Hot Sauce Holster', icon:'🌶️', slot:'neck', rar:3, price:30, stats:{regen:1}, ability:'burn', note:'Your hits may set machines on fire. The good kind of heartburn.' },
+  /* ---- class build lines: every role gets a ladder from easy pickups to a
+     chase legendary. TANK line ---- */
+  hose:     { name:'Garden Hose Coil', icon:'🐍', slot:'neck', rar:2, price:17, stats:{maxHP:6, regen:1}, note:'Fifty feet of backup plan.' },
+  spikes:   { name:'Aeration Spikes', icon:'📌', slot:'feet', rar:3, price:29, stats:{thorns:3, armor:1}, note:'Great for the lawn. Terrible for the Roomba.' },
+  lidshield:{ name:'Trash Lid Buckler', icon:'🛢️', slot:'ring', rar:3, price:31, stats:{armor:1}, ability:'nova', note:'Taking a hit may unleash a shockwave that hurls machines back.' },
+  anvil:    { name:'Garage Anvil', icon:'🧱', slot:'trinket', rar:4, price:52, stats:{maxHP:20, thorns:5, move:-12}, note:'Nobody remembers buying it. It cannot be moved. Until now.' },
+  fortress: { name:'La-Z-Boy Fortress', icon:'🏰', slot:'chest', rar:5, price:110, stats:{maxHP:25, armor:3, thorns:6, move:-15}, note:'Fully reclined. Fully armored. The chase is over, let them come.' },
+  /* ---- MELEE line ---- */
+  grip:     { name:'Pine Tar Grip', icon:'🌲', slot:'ring', rar:2, price:18, stats:{meleeMul:0.1, crit:0.03}, note:'Technically cheating in several leagues.' },
+  headband: { name:'Sweatband of Focus', icon:'🎽', slot:'head', rar:2, price:17, stats:{atk:0.06, meleeMul:0.08}, note:'Absorbs sweat. Radiates intent.' },
+  cup:      { name:'Athletic Cup', icon:'🥤', slot:'legs', rar:3, price:28, stats:{armor:2, dodge:0.03}, note:'Some protection is not negotiable.' },
+  reach:    { name:'Grabber Reacher', icon:'🦾', slot:'trinket', rar:3, price:30, stats:{rangeMul:0.12, meleeMul:0.1}, note:'Four feet of never bending over again.' },
+  beltblack:{ name:'Backyard Black Belt', icon:'🥋', slot:'legs', rar:5, price:108, stats:{meleeMul:0.3, atk:0.1, move:8}, note:'Earned in a dojo that meets behind the shed.' },
+  /* ---- RANGED line ---- */
+  quiver:   { name:'Nail Quiver', icon:'🧷', slot:'neck', rar:2, price:18, stats:{rangedMul:0.1, atk:0.04}, note:'Galvanized. Organized. Weaponized.' },
+  sight:    { name:'Deer Stand Scope', icon:'🔬', slot:'head', rar:3, price:30, stats:{crit:0.06, rangeMul:0.1}, note:'He has never seen a deer. He sees everything else.' },
+  triggermitts:{ name:'Trigger Mitts', icon:'🧤', slot:'ring', rar:3, price:30, stats:{rangedMul:0.12, critMul:0.3}, note:'Fingerless. Merciless.' },
+  ghillie:  { name:'Leaf-Pile Ghillie', icon:'🍂', slot:'chest', rar:4, price:52, stats:{rangedMul:0.15, dodge:0.05, rangeMul:0.08}, note:'He IS the yard work.' },
+  goldenbb: { name:'The Golden BB', icon:'🌟', slot:'ring', rar:5, price:112, stats:{crit:0.1, critMul:0.6, rangedMul:0.15}, note:'Every shot remembers it. Every shot wants to be it.' },
+  /* ---- CASTER / EXPLOSIVE line ---- */
+  sparkler: { name:'Emergency Sparklers', icon:'✨', slot:'trinket', rar:2, price:17, stats:{blastMul:0.12}, note:'Glovebox ordnance.' },
+  manifesto:{ name:'HOA Manifesto', icon:'📜', slot:'neck', rar:3, price:30, stats:{areaMul:0.15, blastMul:0.12}, note:'Article 12: explosions shall be LARGE.' },
+  drum:     { name:'Burn Barrel', icon:'🛢️', slot:'trinket', rar:4, price:52, stats:{blastMul:0.25, areaMul:0.15, maxHP:-5}, note:'Everything fits in the burn barrel eventually.' },
+  fworks:   { name:'Municipal Fireworks License', icon:'🎆', slot:'trinket', rar:5, price:110, stats:{blastMul:0.3, areaMul:0.25, luck:0.05}, note:'Signed by the mayor. Feared by the county.' },
+  /* ---- SUPPORT / ECONOMY line ---- */
+  jar:      { name:'Swear Jar', icon:'🫙', slot:'trinket', rar:2, price:17, stats:{luck:0.06, pickup:15}, note:'Funded entirely by assembly instructions.' },
+  magnet:   { name:'Fridge Magnet Collection', icon:'🧲', slot:'trinket', rar:2, price:16, stats:{pickup:30}, note:'Twenty years of vacations, now tactically relevant.' },
+  punchcard:{ name:'Sub Shop Punch Card', icon:'🎫', slot:'neck', rar:3, price:29, stats:{burgerMul:0.5, luck:0.05}, note:'One punch from a free footlong. Forever.' },
+  midas:    { name:'Yard Sale Midas Ring', icon:'💍', slot:'ring', rar:4, price:54, stats:{luck:0.08}, ability:'goldtouch', note:'Scrapped machines may cough up bonus bolts.' },
+  blackcard:{ name:'Executive Wholesale Card', icon:'🃏', slot:'neck', rar:5, price:108, stats:{luck:0.15, pickup:40, priceMul:-0.12}, note:'Opens doors. Closes deals. Buys pallets.' },
+  /* ---- utility on-hit ---- */
+  peas:     { name:'Frozen Pea Compress', icon:'❄️', slot:'neck', rar:3, price:30, stats:{regen:1}, ability:'chill', note:'Your hits may chill machines to a crawl. Doctor approved.' },
   /* legendaries: from wave 5. two copies to empower one */
   gnome:    { name:'Garden Gnome of War', icon:'🗿', slot:'trinket', rar:5, price:95, stats:{}, ability:'gnome', note:'A gnome joins the fight. He has a staple gun and no fear.' },
   overtime: { name:'Overtime Pay', icon:'💼', slot:'trinket', rar:5, price:90, stats:{}, ability:'overtime', note:'+1 bolt every 3 seconds. The grind never stops.' },
