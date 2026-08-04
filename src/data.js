@@ -333,13 +333,15 @@ const CHAMPS = {
 };
 
 /* ---------------- difficulty ----------------
-   hp/dmg scale the machines, rate scales spawn pressure, loot scales bolts */
+   hp/dmg scale the machines, rate scales spawn pressure, spd their legs,
+   loot scales bolts. 1-3 are the family tiers; 4-5 sharpened hard after the
+   friends cruised wave 20 on ROBOT UPRISING (2026-08-03 playtest) */
 const DIFFS = {
-  1:{ name:'LAZY SUNDAY',     desc:'The machines are half asleep. A gentle mow.', hp:0.75, dmg:0.7,  rate:0.8,  loot:0.85 },
-  2:{ name:'WEEKDAY',         desc:'The standard shift.',                          hp:1,    dmg:1,    rate:1,    loot:1 },
-  3:{ name:'WEEKEND WARRIOR', desc:'They brought friends.',                        hp:1.3,  dmg:1.2,  rate:1.2,  loot:1.15 },
-  4:{ name:'HOA AUDIT',       desc:'Everything is out to get you. Even the lawn.', hp:1.7,  dmg:1.45, rate:1.45, loot:1.35 },
-  5:{ name:'ROBOT UPRISING',  desc:'The singularity arrived and it is furious.',   hp:2.2,  dmg:1.8,  rate:1.7,  loot:1.6 },
+  1:{ name:'LAZY SUNDAY',     desc:'The machines are half asleep. A gentle mow.', hp:0.75, dmg:0.7,  rate:0.8,  spd:1,    loot:0.85 },
+  2:{ name:'WEEKDAY',         desc:'The standard shift.',                          hp:1,    dmg:1,    rate:1,    spd:1,    loot:1 },
+  3:{ name:'WEEKEND WARRIOR', desc:'They brought friends.',                        hp:1.3,  dmg:1.2,  rate:1.2,  spd:1.02, loot:1.15 },
+  4:{ name:'HOA AUDIT',       desc:'Everything is out to get you. Even the lawn.', hp:1.85, dmg:1.55, rate:1.55, spd:1.06, loot:1.4 },
+  5:{ name:'ROBOT UPRISING',  desc:'The singularity arrived and it is furious.',   hp:2.6,  dmg:2.1,  rate:2.0,  spd:1.1,  loot:1.7 },
 };
 const DF=()=>DIFFS[G.diff||2];
 /* the mower charges on TIME, not kills, so strong builds cannot loop it;

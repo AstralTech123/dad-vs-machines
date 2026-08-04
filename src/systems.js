@@ -159,7 +159,7 @@ function spawnEnemy(defKey,x,y,child){
   const coopHP=1+0.6*(G.players.length-1);
   const dhp=d.hp*hpMul(w)*DF().hp*coopHP;
   const e={ def:d, key:defKey, x, y, hp:dhp, maxhp:dhp,
-    spd:d.spd*spdMul(w)*rand(0.92,1.08), flash:0, kx:0, ky:0, contactCd:0,
+    spd:d.spd*spdMul(w)*(DF().spd||1)*rand(0.92,1.08), flash:0, kx:0, ky:0, contactCd:0,
     seed:rand(0,TAU), state:0, stateT:rand(0,1.5), windT:0, child:!!child, wobble:rand(0,9),
     trampCd:0 };
   if(d.boss){

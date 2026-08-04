@@ -89,3 +89,10 @@ Direction, decided with Austin:
    drop rarity.
 7. More enemy types, elites as regular scaling spawns, more rare spawns.
 8. Last: retune all 5 difficulties with the sim (gear changes player power).
+
+R6 SHIPPED 2026-08-03: all eight points live. Slot census 10+ uniques per
+slot (76 armor pieces + 10 weapons). Elites scale to 6 per wave on ROBOT
+UPRISING, which also got hp 2.6x / dmg 2.1x / rate 2x / spd 1.1x. Diffs 1-3
+untouched for family play. NEXT: friends playtest round 2; candidates for
+round 3: set bonuses (paired gear), gamepad navigation for the character
+sheet, more on-hit effects, third map.
