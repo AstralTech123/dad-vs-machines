@@ -288,14 +288,22 @@ function scaledUltNeed(st){
   return Math.max(15, st.ultNeed||ULT_NEED);
 }
 
-/* ---------------- chore contracts (optional wave objectives) ---------------- */
+/* ---------------- chore contracts (optional wave objectives) ----------------
+   n can be a number or a function of the wave. minW keeps a chore from rolling
+   before the thing it needs exists (Swarmlets start wave 5, elites need player
+   power). okNow() gates chores that need gear the players may not own. every
+   chore must be winnable through play, never lost to luck. */
 const CONTRACTS = [
-  { key:'mow',    n:6,  txt:'Scrap 6 machines with the mower' },
-  { key:'swarm',  n:8,  txt:'Scrap 8 Swarmlets' },
-  { key:'bolts',  n:25, txt:'Collect 25 bolts this wave' },
-  { key:'nodmg',  n:0,  txt:'Take zero damage this wave' },
-  { key:'flam',   n:0,  txt:'Keep every flamingo standing' },
-  { key:'burger', n:2,  txt:'Eat 2 burgers this wave' },
+  { key:'mow',    minW:2, n:w=>4+Math.floor(w/3),  txt:'Scrap # machines with the mower' },
+  { key:'swarm',  minW:5, n:w=>8+Math.floor(w/2),  txt:'Scrap # Swarmlets' },
+  { key:'bolts',  minW:2, n:w=>18+3*w,             txt:'Collect # bolts this wave' },
+  { key:'nodmg',  minW:2, n:0,                     txt:'Take zero damage this wave' },
+  { key:'burger', minW:2, n:2,                     txt:'Eat # burgers this wave' },
+  { key:'blast',  minW:3, n:w=>5+Math.floor(w/2),  txt:'Scrap # machines with explosions',
+    okNow:()=>G.players.some(p=>p.weapons.some(w=>WEAPONS[w.key].cls==='blast')) },
+  { key:'elite',  minW:4, n:1,                     txt:'Scrap an elite machine this wave' },
+  { key:'sprink', minW:2, n:w=>2+Math.floor(w/5),  txt:'Sprinkler scraps # machines' },
+  { key:'hp75',   minW:2, n:0,                     txt:'Finish the wave above 75% HP' },
 ];
 
 /* ---------------- neighbor favors (borrow a weak perk for one wave) ---------------- */

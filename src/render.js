@@ -50,10 +50,10 @@ function updateHUD(){
   const cl=document.getElementById('contractline');
   if(G.contract){
     const c=G.contract, d=c.def;
-    const prog = d.key==='flam' ? (FLAM.every(f=>f.up)?'OK':'FAILED')
-               : d.key==='nodmg' ? (c.dmg?'FAILED':'OK')
-               : c.prog+'/'+d.n;
-    cl.textContent='🧹 '+d.txt+' ('+prog+')';
+    const prog = d.key==='nodmg' ? (c.dmg?'FAILED':'OK')
+               : d.key==='hp75' ? (contractHPOk()?'OK':'LOW')
+               : c.prog+'/'+c.n;
+    cl.textContent='🧹 '+c.txt+' ('+prog+')';
   } else cl.textContent='';
 }
 function buildFavorPick(){

@@ -82,12 +82,21 @@ function startWave(n){
     toast('🤝 '+CHAMPS[G.favorNext].name+' lends a hand this wave');
     G.favorNext=null;
   }
-  // chore contract on non-boss waves from wave 2 on
-  G.contract = (n>=2 && !bossFor(n)) ? { def:pick(CONTRACTS), prog:0, dmg:false } : null;
+  // chore contract on non-boss waves from wave 2 on. only chores that are
+  // actually possible this wave may roll; counts scale with the wave number
+  G.contract=null;
+  if(n>=2 && !bossFor(n)){
+    const opts=CONTRACTS.filter(c=> n>=c.minW && (!c.okNow || c.okNow()));
+    if(opts.length){
+      const def=pick(opts);
+      const need=(typeof def.n==='function') ? def.n(n) : def.n;
+      G.contract={ def, n:need, txt:def.txt.replace('#',need), prog:0, dmg:false };
+    }
+  }
   // rare bolt courier from wave 4 on
   G.courierT = (n>=4 && Math.random()<0.3) ? rand(8, WAVE_DUR[n]*0.6) : undefined;
   if(G.contract){
-    const ctxt='🧹 Optional chore: '+G.contract.def.txt+' (pays bolts and XP)';
+    const ctxt='🧹 Optional chore: '+G.contract.txt+' (pays bolts and XP)';
     setTimeout(()=>{ if(G.contract) toast(ctxt); }, G.favorApplied?2600:800);
   }
   G.mode='play'; hide('shop');
@@ -443,6 +452,7 @@ function explode(b){
   for(const e of G.enemies){
     if(dist2(b.x,b.y,e.x,e.y) < (b.aoe+e.def.r)*(b.aoe+e.def.r)){
       hitEnemy(e, b.dmg, Math.atan2(e.y-b.y,e.x-b.x), b.knock, b.crit);
+      if(e.hp<=0 && G.contract && G.contract.def.key==='blast') G.contract.prog++;
     }
   }
 }
@@ -497,6 +507,7 @@ function killEnemy(e){
   if(G.contract){
     if(G.contract.def.key==='swarm' && e.key==='swarm') G.contract.prog++;
     if(G.contract.def.key==='mow' && e._byMow) G.contract.prog++;
+    if(G.contract.def.key==='elite' && e.def.elite) G.contract.prog++;
   }
   G.cam.shake=Math.min(14,G.cam.shake+(e.def.r>24?5:1.2));
   if(e.def.r>24) sfx.boom(); else noiseHit(0.09,0.09,1800);
@@ -967,6 +978,7 @@ function updateYard(dt){
       if(Math.abs(angDiff(SPRINK.a,ea))<(G.yard.sprink>=2?0.3:0.15) && (e._spk===undefined||e._spk<G.t)){
         e._spk=G.t+0.35;
         hitEnemy(e, G.yard.sprink>=1?6:2, ea, 170, false);
+        if(e.hp<=0 && G.contract && G.contract.def.key==='sprink') G.contract.prog++;
       }
     }
   }
@@ -1144,13 +1156,19 @@ function startBossPhase(kind){
   addWarn(bx,by,1.4,'bossw',kind);
   updateHUD();
 }
+/* every player alive and above 75% HP. reads G.hp for the active player
+   because their saved copy can be stale between saveActive calls */
+function contractHPOk(){
+  return G.players.every(p=> !p.body.dead &&
+    (p===G.active ? G.hp : p.hp) >= p.stats.maxHP*0.75);
+}
 function settleContract(){
   const c=G.contract; if(!c) return;
   G.contract=null;
   const d=c.def;
-  const ok = d.key==='flam' ? FLAM.every(f=>f.up)
-           : d.key==='nodmg' ? !c.dmg
-           : c.prog>=d.n;
+  const ok = d.key==='nodmg' ? !c.dmg
+           : d.key==='hp75' ? contractHPOk()
+           : c.prog>=c.n;
   if(ok){
     const pay=Math.round((10+3*G.wave)*DF().loot);
     G.mats+=pay; G.totalMats+=pay; gainXP(8);
