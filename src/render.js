@@ -151,13 +151,19 @@ function advanceLevelUp(){
 }
 function renderSlots(){
   const box=document.getElementById('slotwrap'); box.innerHTML='';
-  for(let i=0;i<MAX_SLOTS;i++){
+  /* two weapon boxes + one armor tally; the full sheet lives in the shop */
+  for(const sk of ['w1','w2']){
     const d=document.createElement('div'); d.className='slot';
-    const w=G.weapons[i];
-    if(w){ d.innerHTML=`<img src="${ICONURL[w.key]}" alt="">`+
-      `<div class="pips" style="color:${w.tier===3?'#c48df0':w.tier===2?'#6aa8f0':'#8b93a3'}">${'●'.repeat(w.tier)}</div>`; }
+    const w=G.gear&&G.gear[sk];
+    if(w){ const def=WEAPONS[w.key];
+      d.innerHTML=gearIconHTML(w.key)+
+      `<div class="pips" style="color:${w.emp?'#ffd166':RARITY[def.rar].color}">${w.emp?'⭐':'●'.repeat(def.rar)}</div>`; }
     box.appendChild(d);
   }
+  const worn=GEAR_SLOTS.filter(([sk])=> sk!=='w1'&&sk!=='w2'&&G.gear&&G.gear[sk]).length;
+  const d2=document.createElement('div'); d2.className='slot';
+  d2.innerHTML=`<span style="font-size:18px">🎽</span><div class="pips" style="color:#8b93a3">${worn}/8</div>`;
+  box.appendChild(d2);
 }
 let bannerTO=null;
 function banner(big,small){
@@ -250,13 +256,16 @@ function buildRecords(){
 }
 document.getElementById('mrecbtn').addEventListener('click',()=>{ sfx.click(); buildRecords(); show('records'); });
 document.getElementById('recordsclose').addEventListener('click',()=>{ sfx.click(); hide('records'); });
-/* tap an owned item icon anywhere to see what it does */
+/* tap any owned gear icon to see what it is and what it does */
 function wireInvIcons(container){
   container.querySelectorAll('.invit').forEach(el=>{
     el.addEventListener('click',()=>{
-      const it=ITEMS[el.dataset.k]; if(!it) return;
-      const stats=fmtItemStats(it);
-      toast(it.icon+' '+it.name+': '+(stats?stats+' · ':'')+(it.note||''));
+      const d=defByKey(el.dataset.k); if(!d) return;
+      const tag=d.cls ? (d.cls==='blast'?'EXPLOSIVE':d.cls.toUpperCase())+' WEAPON' : SLOT_LABEL[slotsFor(d)[0]];
+      const body=d.cls
+        ? `DMG ${Math.round(d.dmg)} every ${d.cd.toFixed(2)}s · ${d.desc||''}`
+        : `${fmtItemStats(d)}${d.note?' · '+d.note:''}`;
+      toast((d.icon||'🔧')+' '+d.name+' ['+RARITY[d.rar].name+' '+tag+']: '+body);
       sfx.click();
     });
   });
@@ -279,12 +288,15 @@ function statsHTML(full){
     if(c&&c.perk) rows.push('★ '+c.perkDesc);
     rows.push('🚜 Mower ultimate: charges over '+scaledUltNeed(st)+' seconds ('+Math.floor(G.player.ult/scaledUltNeed(st)*100)+'% now). Press E or tap the bar when full.');
     rows.push('🔩 Bolts collected this run: '+(G.active&&G.active.earned||0)+' (the wallet is shared, this is your contribution)');
-    for(const k in G.itemCounts){ const it=ITEMS[k]; if(it&&it.ability) rows.push(it.icon+' '+it.name+': '+it.note); }
+    const worn=GEAR_SLOTS.map(([sk])=>G.gear&&G.gear[sk]).filter(Boolean);
+    for(const g of worn){ const d=gearDef(g); if(d.ability) rows.push(d.icon+' '+d.name+': '+d.note); }
     for(const k in G.yard){ if(G.yard[k]>0) rows.push(YARD_UPGRADES[k].icon+' '+yardName(k)+' Lv'+G.yard[k]); }
-    const inv=Object.entries(G.itemCounts).map(([k,n])=> ITEMS[k]?
-      `<span class="invit" data-k="${k}" title="${ITEMS[k].name}">${ITEMS[k].icon}${n>1?'×'+n:''}</span>` : '').join(' ');
+    const inv=[...worn, ...((G.pack)||[])].map(g=>{
+      const d=gearDef(g);
+      return `<span class="invit" data-k="${g.key}" title="${d.name}">${d.icon||gearIconHTML(g.key)}${g.emp?'⭐':''}${g.copies>1?'×'+g.copies:''}</span>`;
+    }).join(' ');
     extra='<br><span class="sv">ABILITIES</span><br>'+rows.join('<br>')+
-      (inv?'<br><span class="sv">ITEMS OWNED</span> (tap one to see what it does)<br>'+inv:'');
+      (inv?'<br><span class="sv">GEAR</span> (tap a piece to see what it does)<br>'+inv:'');
   }
   return `<h3>${(CHAMPS[G.champ]||CHAMPS.dad).name.toUpperCase()} · LEVEL ${G.level||1} · ${DF().name}</h3>
     Max HP <span class="sv">${st.maxHP}</span> · Regen <span class="sv">${st.regen}/4s</span> ·
@@ -312,8 +324,8 @@ function buildGuide(){
     ['Pickup Range','How far bolts fly toward you.'],
   ].map(r=>`<tr><td class="sv">${r[0]}</td><td>${r[1]}</td></tr>`).join('');
   const weapRows=Object.entries(WEAPONS).map(([k,w])=>
-    `<tr><td><img src="${ICONURL[k]}" alt=""></td><td class="sv">${w.name}</td>`+
-    `<td class="g${w.cls}">${w.cls.toUpperCase()}</td><td>${w.dmg} dmg / ${w.cd}s</td><td>${w.desc}</td></tr>`).join('');
+    `<tr><td>${gearIconHTML(k)}</td><td class="sv" style="color:${RARITY[w.rar].color}">${w.name}</td>`+
+    `<td class="g${w.cls}">${w.cls==='blast'?'EXPLOSIVE':w.cls.toUpperCase()}</td><td>${w.dmg} dmg / ${w.cd}s</td><td>${w.desc}</td></tr>`).join('');
   const champRows=Object.entries(CHAMPS).map(([k,c])=>
     `<tr><td><img src="${champPortrait(k)}" alt=""></td><td class="sv">${c.name}</td>`+
     `<td>${c.role}</td><td>${c.perkDesc}</td></tr>`).join('');
@@ -332,15 +344,19 @@ function buildGuide(){
     <h3>LEVELING</h3>
     <p>Machines grant XP, elites and bosses grant piles of it. Every level banks a free upgrade,
     chosen one of four at wave end before the shop opens.</p>
-    <h3>ITEMS</h3>
-    <p>Over 50 items in five rarities: <span style="color:#8b93a3">COMMON</span>,
+    <h3>GEAR</h3>
+    <p>Ten equipment slots: two WEAPONS, HEAD, CHEST, LEGS, FEET, NECK, two RINGS, and a TRINKET.
+    Every piece has a rarity: <span style="color:#8b93a3">COMMON</span>,
     <span style="color:#9be06f">UNCOMMON</span>, <span style="color:#6aa8f0">RARE</span>,
     <span style="color:#c48df0">EPIC</span>, <span style="color:#ffd166">LEGENDARY</span>.
-    Higher rarities pack more stats or unique abilities. Legendaries appear from wave 5,
-    once per run. Luck improves your odds at everything. Watch for <span style="color:#ff5a5f">CURSED</span>
-    items: 40% off, but the discount costs you something real.</p>
+    Buying copies of a piece you own EMPOWERS it (6 copies for common, 5 uncommon, 4 rare,
+    3 epic, 2 legendary): bigger stats, stronger effects. Spare gear waits in your 12-slot
+    backpack, swap freely between waves. Legendaries appear from wave 5. Luck improves your
+    odds at everything. Watch for <span style="color:#ff5a5f">CURSED</span> pieces: 40% off,
+    but the discount costs you something real while worn.</p>
     <h3>WEAPONS</h3>
-    <p>Six slots. Buy two of the same weapon at the same tier and they combine into the next tier.</p>
+    <p>Two weapon slots. Weapons decide what you swing or shoot; your champ's class bonus
+    decides how hard. MELEE, RANGED, or EXPLOSIVE, always printed on the card.</p>
     <table>${weapRows}</table>
     <h3>THE YARD</h3>
     <p>The grill cooks healing burgers and DELIVERS them to whoever is hurting most, follow the green arrow ·
@@ -987,6 +1003,7 @@ function drawIcon(c,key,s){
 const ICONURL={};
 (function bakeIcons(){
   for(const key of Object.keys(WEAPONS)){
+    if(WEAPONS[key].icon) continue; /* emoji-iconed weapons skip the vector bake */
     const c=document.createElement('canvas'); c.width=c.height=48;
     const ic=c.getContext('2d');
     ic.translate(24,24); ic.rotate(-0.35);
@@ -994,6 +1011,13 @@ const ICONURL={};
     ICONURL[key]=c.toDataURL();
   }
 })();
+/* icon for any gear key: baked vector art if we have it, emoji otherwise.
+   always wrapped as a tappable .invit so tooltips work everywhere */
+function gearIconHTML(key){
+  const d=defByKey(key)||{};
+  const inner=ICONURL[key] ? `<img src="${ICONURL[key]}" alt="">` : (d.icon||'❔');
+  return `<span class="invit" data-k="${key}">${inner}</span>`;
+}
 
 /* ---------------- dad + mower art ---------------- */
 function drawBody(c,L,f,step){

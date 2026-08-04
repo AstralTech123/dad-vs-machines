@@ -65,4 +65,27 @@ Brotato (shop, luck, builds), LoL Swarm mode (champ roles and ults), Bloons
 - Pause menu, in-game How to Play guide, crowd damage fix
 - Garage sale, chore contracts, neighbor favors, yard investments
 - 56-item catalog, balance pass, gamepad support, visual identity pass, Corporate Office map: SHIPPED
-- NEXT: playtest feedback round, then couch co-op lobby, then leaderboard
+- Couch co-op (4P), shared leaderboard, iPhone fixes: SHIPPED
+
+## R6: The Gear Overhaul (from friends' playtest feedback, 2026-08-03)
+Friends' verdicts: flamingo chore impossible late (FIXED, replaced with
+scaling chores), item system is unreadable junk with no direction, max
+difficulty too easy (wave 20 on a phone, first try).
+
+Direction, decided with Austin:
+1. WoW-style gear replaces both the 6-weapon list and the 56 stacking items.
+   Ten slots: Weapon x2, Head, Chest, Legs, Feet, Neck, Ring x2, Trinket.
+   Weapons define your attacks; champs keep stats, role, perk, and ult.
+2. Every piece has a rarity (common, uncommon, rare, epic, legendary), stat
+   lines, and a visible type tag (MELEE / RANGED / EXPLOSIVE / AOE).
+3. Character sheet in the shop: paper doll with all 10 slots, tap any item
+   for a full tooltip, champ's preferred stats called out. Works with touch,
+   gamepad, and per-player in couch co-op.
+4. Backpack: 12 slots, swap gear between waves, expandable via a rare drop.
+5. Empower: collecting copies upgrades a piece (6/5/4/3/2 copies by rarity).
+   An empowered green should still lose to a dropped epic.
+6. Roughly 10 uniques per slot: stat sticks, on-hit effects, AOE trinkets,
+   paired set bonuses. Elites and bosses can drop gear directly, luck nudges
+   drop rarity.
+7. More enemy types, elites as regular scaling spawns, more rare spawns.
+8. Last: retune all 5 difficulties with the sim (gear changes player power).

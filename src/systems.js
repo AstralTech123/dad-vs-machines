@@ -18,7 +18,7 @@ function tryDash(){
   let len=Math.hypot(ix,iy);
   if(len<0.01){ ix=P.face; iy=0; len=1; }
   P.ddx=ix/len; P.ddy=iy/len;
-  P.dashT=0.13; P.dashCd=G.stats.dashCdMax;
+  P.dashT=0.13; P.dashCd=Math.max(0.6,G.stats.dashCdMax);
   P.iframe=Math.max(P.iframe,G.stats.dashIF);
   if(G.perk==='whistle'){
     for(const e of [...G.enemies]){
@@ -125,8 +125,11 @@ function applyChamp(key){
   else if(c.perk==='bookclub') st.areaMul=1.45;
   else if(c.perk==='oorah') st.rage=0.25;
   G.hp=st.maxHP;
-  G.weapons.length=0;
-  G.weapons.push(mkWeapon(c.weapon||'stapler',1));
+  const pl=G.active;
+  for(const [sk] of GEAR_SLOTS) pl.gear[sk]=null;
+  pl.pack.length=0; pl.packMax=PACK_BASE;
+  pl.gear.w1=mkWeapon(c.weapon||'stapler');
+  syncWeapons(pl);
   updateHUD(); renderSlots();
 }
 function flavor(n){
@@ -341,8 +344,8 @@ function playerDeathFX(){
 }
 
 /* ---------------- weapons + bullets ---------------- */
-function tierStat(w){ const t=TIER[w.tier], d=WEAPONS[w.key];
-  return { dmg:d.dmg*t.dmg, cd:d.cd*t.cd }; }
+function wpnStat(w){ const d=WEAPONS[w.key];
+  return { dmg:d.dmg*(w.emp?EMP_DMG:1), cd:d.cd*(w.emp?EMP_CD:1) }; }
 function nearestEnemy(x,y,range){
   let best=null, bd=range*range;
   for(const e of G.enemies){ const d=dist2(x,y,e.x,e.y); if(d<bd){ bd=d; best=e; } }
@@ -357,7 +360,7 @@ function updateWeapons(dt){
   const P=G.player; if(P.dead) return;
   const n=G.weapons.length;
   G.weapons.forEach((w,i)=>{
-    const def=WEAPONS[w.key], ts=tierStat(w);
+    const def=WEAPONS[w.key], ts=wpnStat(w);
     w.cd -= dt*G.stats.atk;
     w.recoil=Math.max(0,w.recoil-dt*5);
     w.flash=Math.max(0,w.flash-dt);
@@ -1214,17 +1217,122 @@ function onBossDown(){
 }
 
 /* ---------------- shop ---------------- */
-function tierRoll(){
-  const w=G.wave, lk=1+G.stats.luck;
-  const t3 = (w>=6 ? Math.min(0.22, 0.04*(w-5)) : 0)*lk;
-  const t2 = (w>=3 ? Math.min(0.42, 0.10+0.05*(w-3)) : (w>=2?0.08:0))*lk;
-  const r=Math.random();
-  if(r<t3) return 3; if(r<t3+t2) return 2; return 1;
-}
-function priceOf(kind,key,tier){
+function priceOf(kind,key){
   if(kind==='w')
-    return Math.max(1, Math.round(WEAPONS[key].price * TIER[tier].priceMul * (1+0.14*(G.wave-1)) * G.stats.priceMul));
+    return Math.max(1, Math.round(WEAPONS[key].price * (1+0.14*(G.wave-1)) * G.stats.priceMul));
   return Math.max(1, Math.round(ITEMS[key].price * (1+0.12*(G.wave-1)) * G.stats.priceMul));
+}
+/* ---------------- gear: equip, unequip, empower, backpack ----------------
+   stats apply on equip and reverse on unequip, so swapping is always safe.
+   the ONLY code that touches G.stats for gear is applyGearMods. */
+function ownedInst(pl,key){
+  for(const [sk] of GEAR_SLOTS){ const g=pl.gear[sk]; if(g&&g.key===key) return g; }
+  return pl.pack.find(g=>g.key===key)||null;
+}
+function packFull(pl){ return pl.pack.length>=pl.packMax; }
+function openSlotFor(pl,def){ return slotsFor(def).find(sk=>!pl.gear[sk])||null; }
+function gearCount(pl){
+  let n=0; for(const [sk] of GEAR_SLOTS) if(pl.gear[sk]) n++;
+  return n+pl.pack.length;
+}
+/* dir +1 applies a piece's stats/ability to the ACTIVE player, -1 removes */
+function applyGearMods(inst,dir){
+  const d=gearDef(inst), st=G.stats;
+  const mul=inst.emp?EMP_STATMUL:1;
+  for(const k in (d.stats||{})){
+    const v=d.stats[k]*mul;
+    st[k]+=v*dir;
+    if(k==='maxHP' && v*dir>0) G.hp+=v*dir;
+  }
+  if(inst.curse) st[inst.curse[0]]+=inst.curse[1]*dir;
+  G.hp=Math.max(1, Math.min(G.hp, Math.max(1,st.maxHP)));
+  if(d.ability) applyAbility(d.ability,inst,dir);
+}
+function applyAbility(ab,inst,dir){
+  const n=dir*(inst.emp?2:1); /* empowered ability gear counts double */
+  if(ab==='mortgage'){
+    if(dir>0 && !inst.used){ inst.used=true; G.mats+=70; G.totalMats+=70;
+      floatText(G.player.x,G.player.y-50,'+70 BOLTS','#ffd166',true); }
+    G.stats.priceMul+=0.1*dir;
+  } else if(ab==='gnome'){
+    G.abil.gnome=(G.abil.gnome||0)+n;
+    if(dir>0){ for(let k=0;k<n;k++) G.gnomes.push({ x:G.player.x+rand(-50,50), y:G.player.y+rand(-50,50), cd:0, own:G.active }); }
+    else { for(let k=0;k<-n;k++){ const gi=G.gnomes.findIndex(g=>g.own===G.active); if(gi>=0) G.gnomes.splice(gi,1); } }
+  } else {
+    G.abil[ab]=(G.abil[ab]||0)+n;
+  }
+}
+function empower(pl,inst){
+  const d=gearDef(inst);
+  const equipped=GEAR_SLOTS.some(([sk])=>pl.gear[sk]===inst);
+  if(equipped) applyGearMods(inst,-1);
+  inst.emp=true;
+  if(equipped) applyGearMods(inst,+1);
+  toast('⭐ '+d.name+' is EMPOWERED');
+  sfx.legendary();
+  renderSlots();
+}
+function equipInto(pl,sk,inst){ pl.gear[sk]=inst; applyGearMods(inst,+1); syncWeapons(pl); }
+/* pack -> body. if every fitting slot is taken, swaps with the first one */
+function equipFromPack(pl,pi){
+  const inst=pl.pack[pi]; if(!inst) return;
+  const d=gearDef(inst);
+  let sk=openSlotFor(pl,d);
+  pl.pack.splice(pi,1);
+  if(!sk){
+    sk=slotsFor(d)[0];
+    const out=pl.gear[sk];
+    pl.gear[sk]=null; applyGearMods(out,-1);
+    pl.pack.push(out);
+  }
+  equipInto(pl,sk,inst);
+}
+/* body -> pack */
+function unequipSlot(pl,sk){
+  const inst=pl.gear[sk]; if(!inst) return;
+  if(inst.kind==='w' && pl.weapons.length<=1){ toast('Keep at least one weapon equipped'); return; }
+  if(packFull(pl)){ toast('Backpack is full'); return; }
+  pl.gear[sk]=null; applyGearMods(inst,-1); syncWeapons(pl);
+  pl.pack.push(inst);
+}
+function sellValue(inst){
+  return Math.max(1, Math.round(priceOf(inst.kind,inst.key)*0.5*(1+0.35*(inst.copies-1))));
+}
+function sellGear(pl,loc,ref){
+  const prev=G.active; saveActive(); setActive(pl);
+  let inst=null;
+  if(loc==='pack'){
+    const i=Number(ref);
+    inst=pl.pack[i]; if(inst) pl.pack.splice(i,1);
+  } else {
+    inst=pl.gear[ref];
+    if(inst && inst.kind==='w' && pl.weapons.length<=1){
+      toast('Keep at least one weapon equipped');
+      saveActive(); if(prev) setActive(prev); return;
+    }
+    if(inst){ pl.gear[ref]=null; applyGearMods(inst,-1); syncWeapons(pl); }
+  }
+  if(inst){
+    const val=sellValue(inst);
+    G.mats+=val; G.totalMats+=val;
+    toast('Sold '+gearDef(inst).name+' for 🔩'+val);
+    sfx.buy();
+  }
+  saveActive(); if(prev) setActive(prev);
+  renderShop(); renderSlots(); updateHUD();
+}
+/* shop equip button: same active-player bookkeeping as buying */
+function uiEquipFromPack(pl,i){
+  const prev=G.active; saveActive(); setActive(pl);
+  equipFromPack(pl,i);
+  saveActive(); if(prev) setActive(prev);
+  sfx.click(); renderShop(); renderSlots(); updateHUD();
+}
+function uiUnequip(pl,sk){
+  const prev=G.active; saveActive(); setActive(pl);
+  unequipSlot(pl,sk);
+  saveActive(); if(prev) setActive(prev);
+  sfx.click(); renderShop(); renderSlots(); updateHUD();
 }
 function rarityRoll(){
   const w=G.wave, lk=1+G.stats.luck;
@@ -1260,44 +1368,33 @@ function rollOffersFor(pl){
   const prev=G.active; saveActive(); setActive(pl);
   /* locked offers survive rerolls and carry into the next wave's shop */
   const offers=(pl.offers||[]).filter(o=>o.locked&&!o.sold);
-  const slotsFull=G.weapons.length>=MAX_SLOTS;
+  const pref=(CHAMPS[G.champ]||{}).wpref;
+  /* a key leaves the shop once your copy is empowered */
+  const open=k=>{ const inst=ownedInst(pl,k); return !(inst&&inst.emp); };
   for(let i=offers.length;i<shopOfferCount();i++){
-    let isWeapon = Math.random()<0.42;
-    const pref=(CHAMPS[G.champ]||{}).wpref;
-    if(isWeapon && slotsFull){
-      /* full garage: only offer weapons that can actually combine */
-      const pairable=G.weapons.filter(w=>w.tier<3);
-      if(pairable.length && Math.random()<0.6){
-        const pw=pick(pairable);
-        offers.push({ kind:'w', key:pw.key, tier:pw.tier, price:priceOf('w',pw.key,pw.tier), sold:false });
-        continue;
-      }
-      isWeapon=false; /* nothing combinable: sell them an item instead */
+    const rar=rarityRoll();
+    const wpool=Object.keys(WEAPONS).filter(k=> WEAPONS[k].rar===rar && champCanUse(WEAPONS[k].cls) && open(k));
+    const ipool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar===rar && open(k) && itemUsable(k));
+    /* weapons are rarer defs, so they get extra weight to stay ~1 in 4 offers */
+    let pool=[
+      ...wpool.map(k=>[['w',k], (WEAPONS[k].cls===pref?2.5:1)*2.2]),
+      ...ipool.map(k=>{ const st=ITEMS[k].stats||{}; return [['i',k], (pref&&st[pref+'Mul'])?2.5:1]; }),
+    ];
+    if(!pool.length){
+      pool=[
+        ...Object.keys(WEAPONS).filter(k=>champCanUse(WEAPONS[k].cls)&&open(k)).map(k=>[['w',k],1]),
+        ...Object.keys(ITEMS).filter(k=>open(k)&&itemUsable(k)).map(k=>[['i',k],1]),
+      ];
     }
-    if(isWeapon){
-      const tier=tierRoll();
-      const wpool=Object.keys(WEAPONS).filter(k=>champCanUse(WEAPONS[k].cls));
-      const key=wpick(wpool.map(k=>[k, WEAPONS[k].cls===pref?3:1]));
-      offers.push({ kind:'w', key, tier, price:priceOf('w',key,tier), sold:false });
-    } else {
-      const rar=rarityRoll();
-      /* respect stack caps and skip items this champ cannot use at all */
-      const open=k=> (G.itemCounts[k]||0) < RARITY_CAP[ITEMS[k].rar] && itemUsable(k);
-      let pool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar===rar && open(k));
-      if(!pool.length) pool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar<=2 && open(k));
-      if(!pool.length) pool=Object.keys(ITEMS).filter(open);
-      if(!pool.length) pool=Object.keys(ITEMS);
-      const key=wpick(pool.map(k=>{
-        const st=ITEMS[k].stats||{};
-        return [k, (pref && st[pref+'Mul'])?3:1];
-      }));
-      let curse=null, price=priceOf('i',key,1);
-      if(ITEMS[key].rar<5 && Math.random()<0.12){
-        curse=pick([['maxHP',-6],['move',-12],['armor',-1],['dodge',-0.03],['luck',-0.08]]);
-        price=Math.max(1,Math.round(price*0.6));
-      }
-      offers.push({ kind:'i', key, tier:ITEMS[key].rar, price, curse, sold:false });
+    if(!pool.length) break; /* everything owned and empowered: shelf runs dry */
+    const [kind,key]=wpick(pool);
+    const d=(kind==='w')?WEAPONS[key]:ITEMS[key];
+    let curse=null, price=priceOf(kind,key);
+    if(kind==='i' && d.rar<5 && Math.random()<0.12){
+      curse=pick([['maxHP',-6],['move',-12],['armor',-1],['dodge',-0.03],['luck',-0.08]]);
+      price=Math.max(1,Math.round(price*0.6));
     }
+    offers.push({ kind, key, rar:d.rar, price, curse, sold:false });
   }
   pl.offers=offers;
   saveActive(); if(prev) setActive(prev);
@@ -1316,17 +1413,6 @@ function canBuyFor(pl,o){
   const r=canBuy(o);
   saveActive(); if(prev) setActive(prev);
   return r;
-}
-function sellWeapon(pl,i){
-  if(pl.weapons.length<=1) return;
-  const w=pl.weapons[i]; if(!w) return;
-  const prev=G.active; saveActive(); setActive(pl);
-  const val=Math.max(1,Math.round(priceOf('w',w.key,w.tier)*0.5));
-  G.mats+=val; G.totalMats+=val;
-  pl.weapons.splice(i,1);
-  saveActive(); if(prev) setActive(prev);
-  toast('Sold '+WEAPONS[w.key].name+' for 🔩'+val);
-  sfx.buy(); renderShop(); renderSlots(); updateHUD();
 }
 function yardCost(key){
   const lvl=G.yard[key], u=YARD_UPGRADES[key];
@@ -1354,12 +1440,11 @@ function rerollFor(pl){
 }
 function canBuy(o){
   if(o.sold || G.mats<o.price) return false;
-  if(o.kind==='w'){
-    if(!champCanUse(WEAPONS[o.key].cls)) return false;
-    const slotsFull = G.weapons.length>=MAX_SLOTS;
-    const hasPair = G.weapons.some(w=> w.key===o.key && w.tier===o.tier && o.tier<3);
-    if(slotsFull && !hasPair) return false;
-  }
+  const d=(o.kind==='w')?WEAPONS[o.key]:ITEMS[o.key];
+  if(o.kind==='w' && !champCanUse(d.cls)) return false;
+  const pl=G.active;
+  /* copies always fit; a new piece needs an open slot or backpack room */
+  if(!ownedInst(pl,o.key) && !openSlotFor(pl,d) && packFull(pl)) return false;
   return true;
 }
 function buyOffer(pl,i){
@@ -1367,51 +1452,23 @@ function buyOffer(pl,i){
   const prev=G.active; saveActive(); setActive(pl);
   if(!canBuy(o)){ if(prev) setActive(prev); return; }
   G.mats-=o.price; o.sold=true; sfx.buy();
-  if(o.kind==='w'){
-    G.weapons.push(mkWeapon(o.key,o.tier));
-    tryCombine(o.key,o.tier);
+  const d=(o.kind==='w')?WEAPONS[o.key]:ITEMS[o.key];
+  const owned=ownedInst(pl,o.key);
+  if(owned){
+    owned.copies++;
+    if(!owned.emp && owned.copies>=EMPOWER_NEED[d.rar]) empower(pl,owned);
+    else if(!owned.emp) toast(d.name+': copy '+owned.copies+' of '+EMPOWER_NEED[d.rar]+' to empower');
   } else {
-    const it=ITEMS[o.key];
-    applyItem(it);
-    if(o.curse){
-      G.stats[o.curse[0]]+=o.curse[1];
-      G.hp=Math.max(1,Math.min(G.hp,G.stats.maxHP));
-      floatText(G.player.x,G.player.y-50,'CURSED...','#ff5a5f',true);
-    }
-    G.itemCounts[o.key]=(G.itemCounts[o.key]||0)+1;
-    if(it.rar===5) sfx.legendary();
+    const inst=(o.kind==='w')?mkWeapon(o.key):mkGearItem(o.key);
+    inst.curse=o.curse||null;
+    if(inst.curse) floatText(G.player.x,G.player.y-50,'CURSED...','#ff5a5f',true);
+    const sk=openSlotFor(pl,d);
+    if(sk) equipInto(pl,sk,inst);
+    else pl.pack.push(inst);
+    if(d.rar===5){ G.hasLegend=true; sfx.legendary(); }
   }
   saveActive(); if(prev) setActive(prev);
   renderShop(); renderSlots(); updateHUD();
-}
-function tryCombine(key,tier){
-  if(tier>=3) return;
-  const same=G.weapons.filter(w=>w.key===key && w.tier===tier);
-  if(same.length>=2){
-    G.weapons.splice(G.weapons.indexOf(same[0]),1);
-    G.weapons.splice(G.weapons.indexOf(same[1]),1);
-    G.weapons.push(mkWeapon(key,tier+1));
-    toast('⚙ Combined into '+WEAPONS[key].name+' '+TIER[tier+1].name+'!');
-    sfx.combine();
-    tryCombine(key,tier+1);
-  }
-}
-function applyItem(it){
-  const st=G.stats;
-  for(const k in (it.stats||{})){
-    st[k]+=it.stats[k];
-    if(k==='maxHP' && it.stats[k]>0) G.hp+=it.stats[k];
-  }
-  st.ultNeed=Math.max(15, st.ultNeed);
-  st.dashCdMax=Math.max(0.6, st.dashCdMax);
-  G.hp=Math.max(1, Math.min(G.hp, st.maxHP));
-  if(it.rar===5) G.hasLegend=true;
-  if(it.ability==='mortgage'){ G.mats+=70; st.priceMul+=0.1; }
-  else if(it.ability==='gnome'){
-    G.abil.gnome=(G.abil.gnome||0)+1;
-    G.gnomes.push({ x:G.player.x+rand(-50,50), y:G.player.y+rand(-50,50), cd:0, own:G.active });
-  }
-  else if(it.ability){ G.abil[it.ability]=(G.abil[it.ability]||0)+1; }
 }
 const STAT_FMT={
   maxHP:v=>sg(v)+' Max HP', regen:v=>sg(v)+' Regen', dmg:v=>pc(v)+' Damage',
@@ -1430,28 +1487,36 @@ function fmtItemStats(d){
   return Object.entries(d.stats||{}).map(([k,v])=> STAT_FMT[k]? STAT_FMT[k](v) : k+' '+v).join(' · ');
 }
 function offerCard(pl,pi,o,i,small){
-  let iconHTML,name,desc,tierHTML,cls;
-  if(o.kind==='w'){ const d=WEAPONS[o.key], t=TIER[o.tier];
-    iconHTML=`<img src="${ICONURL[o.key]}" alt="">`; name=d.name;
-    desc=d.desc+`<br><span style="color:#ece7db">DMG ${Math.round(d.dmg*t.dmg)} · every ${(d.cd*t.cd).toFixed(2)}s</span>`;
-    if(pl.weapons.length>=MAX_SLOTS && !pl.weapons.some(w=>w.key===o.key&&w.tier===o.tier&&o.tier<3))
-      desc+='<br><span style="color:#e0a34d">Slots full. Needs a matching pair to combine.</span>';
-    tierHTML=`<div class="ctier">${t.name} WEAPON</div>`; cls='t'+o.tier;
-  } else { const d=ITEMS[o.key], r=RARITY[o.tier];
-    iconHTML=d.icon; name=(o.curse?'Cursed ':'')+d.name;
+  const isW=o.kind==='w';
+  const d=isW?WEAPONS[o.key]:ITEMS[o.key];
+  const r=RARITY[d.rar];
+  const iconHTML=gearIconHTML(o.key);
+  const name=(o.curse?'Cursed ':'')+d.name;
+  /* the type tag friends asked for: what it is and where it goes */
+  const slotTag=isW ? (d.cls==='blast'?'EXPLOSIVE':d.cls.toUpperCase())+' WEAPON'
+                    : SLOT_LABEL[slotsFor(d)[0]];
+  let desc;
+  if(isW){
+    desc=d.desc+`<br><span style="color:#ece7db">DMG ${Math.round(d.dmg)} · every ${d.cd.toFixed(2)}s`
+      +(d.aoe?` · blast radius ${Math.round(d.aoe)}`:'')+(d.pierce?` · pierces ${d.pierce>10?'everything':d.pierce}`:'')+`</span>`;
+  } else {
     const stats=fmtItemStats(d);
     desc=(stats?`<span style="color:#ece7db">${stats}</span><br>`:'')+(d.note||'');
-    if(o.curse){
-      const cf=STAT_FMT[o.curse[0]];
-      desc+=`<br><span style="color:#ff5a5f">CURSE: ${cf?cf(o.curse[1]):o.curse[0]+' '+o.curse[1]}</span>`;
-    }
-    const owned=pl.itemCounts[o.key]||0;
-    const cap=RARITY_CAP[d.rar];
-    tierHTML=`<div class="ctier" style="color:${o.curse?'#ff5a5f':r.color}">${o.curse?'CURSED '+r.name:r.name}</div>`
-      +(goodForChamp(pl.champ,d)?'<div class="goodbadge">★ GOOD FOR YOU</div>':'')
-      +(owned?`<div class="owned">OWNED ×${owned} of ${cap}</div>`:'');
-    cls=(o.curse?'cursed ':'')+'r'+o.tier;
   }
+  if(o.curse){
+    const cf=STAT_FMT[o.curse[0]];
+    desc+=`<br><span style="color:#ff5a5f">CURSE: ${cf?cf(o.curse[1]):o.curse[0]+' '+o.curse[1]}</span>`;
+  }
+  const owned=ownedInst(pl,o.key);
+  const need=EMPOWER_NEED[d.rar];
+  const ownLine=owned ? (owned.emp?'<div class="owned">⭐ EMPOWERED</div>'
+    :`<div class="owned">OWNED · copy ${owned.copies} of ${need} to empower</div>`) : '';
+  if(!owned && !openSlotFor(pl,d) && packFull(pl))
+    desc+='<br><span style="color:#e0a34d">Backpack full. Sell or equip something first.</span>';
+  const tierHTML=`<div class="ctier" style="color:${o.curse?'#ff5a5f':r.color}">${o.curse?'CURSED '+r.name:r.name} · ${slotTag}</div>`
+    +(goodForChamp(pl.champ,d)?'<div class="goodbadge">★ GOOD FOR YOU</div>':'')
+    +ownLine;
+  const cls=(o.curse?'cursed ':'')+'r'+d.rar;
   const div=document.createElement('div');
   div.className='card '+cls+(o.sold?' sold':'')+(small?' small':'')
     +(pl.pad!==null && pl.shopCur===i && !o.sold ? ' cur':'')
@@ -1468,10 +1533,31 @@ function offerCard(pl,pi,o,i,small){
   });
   return div;
 }
-function garageHTML(pl){
-  return pl.weapons.map((w,i)=>`<span class="wrow"><img src="${ICONURL[w.key]}" alt=""><sup>${w.tier}</sup>`+
-    (pl.weapons.length>1?`<button class="sellbtn" data-i="${i}">SELL 🔩${Math.max(1,Math.round(priceOf('w',w.key,w.tier)*0.5))}</button>`:'')+
-    `</span>`).join(' ');
+/* equipment + backpack panel. every icon is tappable for its tooltip */
+function gearHTML(pl){
+  const slotBits=GEAR_SLOTS.map(([sk,label])=>{
+    const g=pl.gear[sk];
+    if(!g) return `<span class="wrow gempty" title="${label}">${label}: –</span>`;
+    const star=g.emp?'⭐':'';
+    return `<span class="wrow">${gearIconHTML(g.key)}${star}`+
+      `<button class="unqbtn" data-sk="${sk}">⇣</button>`+
+      `<button class="sellbtn" data-loc="slot" data-ref="${sk}">🔩${sellValue(g)}</button></span>`;
+  }).join(' ');
+  const packBits=pl.pack.map((g,i)=>
+    `<span class="wrow">${gearIconHTML(g.key)}${g.emp?'⭐':''}`+
+    `<button class="eqbtn" data-i="${i}">EQUIP</button>`+
+    `<button class="sellbtn" data-loc="pack" data-ref="${i}">🔩${sellValue(g)}</button></span>`).join(' ');
+  return `<span class="glabel">EQUIPPED</span> ${slotBits}<br>`+
+    `<span class="glabel">BACKPACK (${pl.pack.length}/${pl.packMax})</span> ${packBits||'(empty)'}`;
+}
+function wireGearButtons(container,pl){
+  container.querySelectorAll('.sellbtn').forEach(b=>
+    b.addEventListener('click',()=>sellGear(pl,b.dataset.loc,b.dataset.ref)));
+  container.querySelectorAll('.eqbtn').forEach(b=>
+    b.addEventListener('click',()=>uiEquipFromPack(pl,Number(b.dataset.i))));
+  container.querySelectorAll('.unqbtn').forEach(b=>
+    b.addEventListener('click',()=>uiUnequip(pl,b.dataset.sk)));
+  wireInvIcons(container);
 }
 function renderShop(){
   document.getElementById('shopmats').textContent='🔩 '+G.mats;
@@ -1501,15 +1587,10 @@ function renderShop(){
       col.appendChild(rb);
       const gr=document.createElement('div');
       gr.className='colgarage';
-      const inv=Object.entries(pl.itemCounts).map(([k,n])=>
-        ITEMS[k]? `<span class="invit" data-k="${k}" title="${ITEMS[k].name} ×${n}">${ITEMS[k].icon}${n>1?'×'+n:''}</span>`:'').join(' ');
       const cch=CHAMPS[pl.champ];
       const wnote=cch.wonly? cch.wonly.map(s=>s.toUpperCase()).join('+')+' ONLY' : cch.wpref? 'likes '+cch.wpref.toUpperCase() : 'any weapon';
-      gr.innerHTML='<span class="glabel">GARAGE ('+wnote+')</span> '+garageHTML(pl)
-        +(inv?'<br><span class="glabel">ITEMS</span> '+inv:'');
-      gr.querySelectorAll('.sellbtn').forEach(b=>
-        b.addEventListener('click',()=>sellWeapon(pl,Number(b.dataset.i))));
-      wireInvIcons(gr);
+      gr.innerHTML='<span class="glabel">GEAR ('+wnote+')</span><br>'+gearHTML(pl);
+      wireGearButtons(gr,pl);
       col.appendChild(gr);
       box.appendChild(col);
     });
@@ -1530,10 +1611,9 @@ function renderShop(){
     sp.innerHTML=statsHTML(true);
     wireInvIcons(sp);
     const pl=G.players[0];
-    wpn.innerHTML=`<h3>GARAGE (${pl.weapons.length}/${MAX_SLOTS} slots)</h3>
-      ${garageHTML(pl)}<br>Buy two of the same weapon + tier and they combine. Selling pays half.`;
-    wpn.querySelectorAll('.sellbtn').forEach(b=>
-      b.addEventListener('click',()=>sellWeapon(pl,Number(b.dataset.i))));
+    wpn.innerHTML=`<h3>GEAR</h3>${gearHTML(pl)}<br>`+
+      `Copies of a piece you own count toward EMPOWERING it. Selling pays half. ⇣ moves a piece to the backpack.`;
+    wireGearButtons(wpn,pl);
   }
   document.getElementById('yardpanel').innerHTML=
     `<h3>${MAPKEY==='office'?'FACILITIES':'YARD WORK'} (lasts the whole run)</h3>`+

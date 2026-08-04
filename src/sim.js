@@ -70,7 +70,7 @@ async function simRun(champ,diff,maxWave){
     if(steps%4000===0) await new Promise(r=>setTimeout(r,0));
   }
   const r={ champ, diff, waveReached:maxWaveReached, survived:!G.player.dead,
-    level:G.level, kills:G.kills, hpLeft:Math.round(G.hp), items:Object.keys(G.itemCounts).length,
+    level:G.level, kills:G.kills, hpLeft:Math.round(G.hp), gear:gearCount(G.active),
     weapons:G.weapons.length, simMinutes:Math.round(steps*dt/60*10)/10 };
   hide('shop'); hide('levelup'); hide('dead'); hide('win');
   return r;

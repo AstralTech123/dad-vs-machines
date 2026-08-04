@@ -12,29 +12,51 @@ function wpick(list){ let tot=0; for(const e of list) tot+=e[1];
   for(const e of list){ r-=e[1]; if(r<=0) return e[0]; }
   return list[list.length-1][0]; }
 
-/* ---------------- definitions ---------------- */
-const TIER = {
-  1:{name:'STANDARD', dmg:1.0, cd:1.0,  priceMul:1.0 },
-  2:{name:'DELUXE',   dmg:1.65,cd:0.88, priceMul:2.2 },
-  3:{name:'PRO-GRADE',dmg:2.6, cd:0.76, priceMul:4.4 },
-};
+/* ---------------- definitions ----------------
+   GEAR MODEL: ten equipment slots per neighbor. Weapons define your attacks,
+   the champ defines stats, role, perk, and ult. Everything shares one rarity
+   ladder and one empower rule: collect copies to empower a piece. */
+const WEAP_SLOTS = 2;
+const PACK_BASE = 12;             /* backpack size; a rare drop can extend it */
+const EMPOWER_NEED = { 1:6, 2:5, 3:4, 4:3, 5:2 };  /* copies by rarity */
+const EMP_STATMUL = 1.6;          /* empowered gear: stats scaled up */
+const EMP_DMG = 1.6, EMP_CD = 0.85; /* empowered weapons: hit harder, faster */
+const GEAR_SLOTS = [
+  ['w1','WEAPON'], ['w2','WEAPON'], ['head','HEAD'], ['chest','CHEST'],
+  ['legs','LEGS'], ['feet','FEET'], ['neck','NECK'], ['ring1','RING'],
+  ['ring2','RING'], ['trinket','TRINKET'],
+];
+const SLOT_LABEL = { w1:'WEAPON', w2:'WEAPON', head:'HEAD', chest:'CHEST',
+  legs:'LEGS', feet:'FEET', neck:'NECK', ring1:'RING', ring2:'RING', trinket:'TRINKET' };
+/* which equipment slots a definition can sit in */
+function slotsFor(def){
+  if(def.cls) return ['w1','w2'];
+  if(def.slot==='ring') return ['ring1','ring2'];
+  return [def.slot];
+}
+/* weapons carry a rarity like every other piece of gear; bigger rarity means
+   genuinely bigger numbers, priced to match */
 const WEAPONS = {
-  stapler:{ name:'Staple Gun', desc:'Rapid-fire office staples.', cls:'ranged',
-    dmg:4, cd:0.42, range:340, speed:560, pierce:0, knock:70, price:12, pitch:1.5, bcolor:'#dfe6f0' },
-  tps:{ name:'TPS Report', desc:'Piercing paperwork. Did you get the memo?', cls:'ranged',
-    dmg:7, cd:0.95, range:420, speed:470, pierce:2, knock:55, price:14, pitch:1.2, bcolor:'#ffffff' },
-  darts:{ name:'Lawn Darts', desc:'Three darts. Banned in several states.', cls:'ranged',
-    dmg:5, cd:1.0, range:330, speed:440, pierce:0, knock:80, count:3, spread:0.38, price:16, pitch:1.0, bcolor:'#ffd166' },
-  mug:{ name:'Coffee Mug', desc:'Explodes on impact. It was decaf anyway.', cls:'blast',
-    dmg:9, cd:1.5, range:380, speed:340, pierce:0, knock:130, aoe:78, price:18, pitch:0.8, bcolor:'#f4eeda' },
-  driver:{ name:'Golf Driver', desc:'FORE. Drives through everything.', cls:'ranged',
-    dmg:15, cd:1.65, range:540, speed:760, pierce:4, knock:180, price:20, pitch:0.6, bcolor:'#f4fbff' },
-  case:{ name:'Briefcase', desc:'Boomerangs through the org chart.', cls:'ranged',
-    dmg:10, cd:1.7, range:290, speed:430, pierce:99, knock:100, boomerang:true, price:18, pitch:0.7, bcolor:'#a97b50' },
-  blower:{ name:'Leaf Blower', desc:'Low damage, absurd knockback. Saturday energy.', cls:'melee',
-    dmg:3, cd:0.14, range:190, cone:0.62, knock:300, melee:'cone', price:16, pitch:2.0 },
-  whacker:{ name:'Weed Whacker', desc:'Orbits you, trimming anything that gets close.', cls:'melee',
-    dmg:6, cd:0.45, orbitR:82, orbitSpd:3.4, melee:'orbit', price:16, pitch:1.1 },
+  stapler:{ name:'Staple Gun', desc:'Rapid-fire office staples.', cls:'ranged', rar:1,
+    dmg:5, cd:0.38, range:340, speed:560, pierce:0, knock:70, price:12, pitch:1.5, bcolor:'#dfe6f0' },
+  blower:{ name:'Leaf Blower', desc:'Low damage, absurd knockback. Saturday energy.', cls:'melee', rar:1,
+    dmg:4, cd:0.14, range:190, cone:0.62, knock:300, melee:'cone', price:12, pitch:2.0 },
+  tps:{ name:'TPS Report', desc:'Piercing paperwork. Did you get the memo?', cls:'ranged', rar:2,
+    dmg:11, cd:0.85, range:420, speed:470, pierce:2, knock:55, price:18, pitch:1.2, bcolor:'#ffffff' },
+  darts:{ name:'Lawn Darts', desc:'Three darts. Banned in several states.', cls:'ranged', rar:2,
+    dmg:7, cd:0.95, range:330, speed:440, pierce:0, knock:80, count:3, spread:0.38, price:18, pitch:1.0, bcolor:'#ffd166' },
+  whacker:{ name:'Weed Whacker', desc:'Orbits you, trimming anything that gets close.', cls:'melee', rar:2,
+    dmg:9, cd:0.4, orbitR:82, orbitSpd:3.4, melee:'orbit', price:18, pitch:1.1 },
+  mug:{ name:'Coffee Mug', desc:'Explodes on impact. It was decaf anyway.', cls:'blast', rar:3,
+    dmg:16, cd:1.35, range:380, speed:340, pierce:0, knock:130, aoe:82, price:30, pitch:0.8, bcolor:'#f4eeda' },
+  case:{ name:'Briefcase', desc:'Boomerangs through the org chart.', cls:'ranged', rar:3,
+    dmg:15, cd:1.5, range:290, speed:430, pierce:99, knock:100, boomerang:true, price:30, pitch:0.7, bcolor:'#a97b50' },
+  driver:{ name:'Golf Driver', desc:'FORE. Drives through everything.', cls:'ranged', rar:4,
+    dmg:30, cd:1.5, range:540, speed:760, pierce:4, knock:180, price:52, pitch:0.6, bcolor:'#f4fbff' },
+  digger:{ name:'Post Hole Digger', desc:'Wide, heavy, and absolutely final.', cls:'melee', rar:4, icon:'⛏️',
+    dmg:22, cd:0.8, range:150, cone:0.9, knock:260, melee:'cone', price:52, pitch:0.5 },
+  cannon:{ name:'T-Shirt Cannon', desc:'Free shirts. Devastating shirts.', cls:'blast', rar:5, icon:'🎉',
+    dmg:34, cd:1.1, range:460, speed:380, pierce:0, knock:200, aoe:96, price:95, pitch:0.4, bcolor:'#ffd166' },
 };
 /* items: rar 1 COMMON .. 5 LEGENDARY. stats are flat deltas like champ mods.
    ability items do something stats cannot. Legendaries appear once per run. */
@@ -45,8 +67,7 @@ const RARITY = {
   4:{ name:'EPIC',      color:'#c48df0', w:5 },
   5:{ name:'LEGENDARY', color:'#ffd166', w:1 },
 };
-/* stack caps by rarity: at the cap an item stops appearing in your shop */
-const RARITY_CAP={ 1:6, 2:5, 3:4, 4:3, 5:1 };
+/* (stack caps replaced by the empower rule: EMPOWER_NEED copies by rarity) */
 /* which stats each role loves, for the GOOD FOR YOU shop badge */
 const ROLE_STATS={
   TANK:['maxHP','armor','regen','thorns','lifesteal','burgerMul'],
@@ -62,73 +83,80 @@ const STAT_NAMES={ maxHP:'Max HP', armor:'Armor', regen:'Regen', thorns:'Thorns'
   blastMul:'Blast Dmg', areaMul:'Area Size', luck:'Luck', pickup:'Pickup', dmg:'Damage' };
 function goodForChamp(champ,it){
   const c=CHAMPS[champ]; if(!c) return false;
+  if(it.cls) return c.wpref ? it.cls===c.wpref : false; /* weapons: class match */
   const st=it.stats||{};
   if(c.wpref && st[c.wpref+'Mul']>0) return true;
   const wants=ROLE_STATS[c.role]||[];
   return Object.keys(st).some(k=> wants.includes(k) && st[k]>0);
 }
+/* one lookup for any piece of gear: weapons and items live in separate
+   definition tables but share the instance model */
+function gearDef(inst){ return inst.kind==='w' ? WEAPONS[inst.key] : ITEMS[inst.key]; }
+function defByKey(key){ return WEAPONS[key] || ITEMS[key]; }
+/* every non-weapon piece names its equipment slot: head, chest, legs, feet,
+   neck, ring (fits either ring finger), or trinket */
 const ITEMS = {
   /* commons: one honest stat */
-  chair:    { name:'Ergonomic Chair', icon:'💺', rar:1, price:10, stats:{maxHP:6}, note:'Lumbar support is life support.' },
-  fiber:    { name:'Fiber Supplements', icon:'💊', rar:1, price:11, stats:{regen:1}, note:'Keeps everything running on schedule.' },
-  strength: { name:'Dad Strength', icon:'💪', rar:1, price:12, stats:{dmg:0.07}, note:'Unexplained. Unstoppable.' },
-  energy:   { name:'Weekend Energy', icon:'⚡', rar:1, price:12, stats:{atk:0.07}, note:'The lawn will not mow itself.' },
-  sneakers: { name:'New Balance 624s', icon:'👟', rar:1, price:11, stats:{move:16}, note:'Maximum cushion. Maximum velocity.' },
-  cargo:    { name:'Cargo Shorts', icon:'🩳', rar:1, price:11, stats:{armor:1}, note:'The pockets absorb the damage.' },
-  costco:   { name:'Costco Card', icon:'🛒', rar:1, price:9,  stats:{pickup:35}, note:'Buys bolts in bulk.' },
-  glasses:  { name:'Reading Glasses', icon:'👓', rar:1, price:12, stats:{crit:0.05}, note:'Now he sees the fine print.' },
-  visor:    { name:'Sun Visor', icon:'🧢', rar:1, price:10, stats:{rangeMul:0.06}, note:'Cuts the glare. Extends the argument.' },
-  gloves:   { name:'Work Gloves', icon:'🧤', rar:1, price:11, stats:{meleeMul:0.08}, note:'Grip strength of a man who owns a vise.' },
-  scope:    { name:'Bird Watching Scope', icon:'🔭', rar:1, price:11, stats:{rangedMul:0.08}, note:'That is a red-tailed hawk. And a target.' },
-  propane:  { name:'Spare Propane', icon:'🔥', rar:1, price:11, stats:{blastMul:0.08}, note:'You can never have enough.' },
+  chair:    { name:'Ergonomic Chair', icon:'💺', slot:'chest', rar:1, price:10, stats:{maxHP:6}, note:'Strapped to his back. Lumbar support is life support.' },
+  fiber:    { name:'Fiber Supplements', icon:'💊', slot:'trinket', rar:1, price:11, stats:{regen:1}, note:'Keeps everything running on schedule.' },
+  strength: { name:'Dad Strength', icon:'💪', slot:'ring', rar:1, price:12, stats:{dmg:0.07}, note:'Unexplained. Unstoppable.' },
+  energy:   { name:'Weekend Energy', icon:'⚡', slot:'feet', rar:1, price:12, stats:{atk:0.07}, note:'A spring in his step. The lawn will not mow itself.' },
+  sneakers: { name:'New Balance 624s', icon:'👟', slot:'feet', rar:1, price:11, stats:{move:16}, note:'Maximum cushion. Maximum velocity.' },
+  cargo:    { name:'Cargo Shorts', icon:'🩳', slot:'legs', rar:1, price:11, stats:{armor:1}, note:'The pockets absorb the damage.' },
+  costco:   { name:'Costco Card', icon:'🛒', slot:'neck', rar:1, price:9,  stats:{pickup:35}, note:'On a lanyard. Buys bolts in bulk.' },
+  glasses:  { name:'Reading Glasses', icon:'👓', slot:'head', rar:1, price:12, stats:{crit:0.05}, note:'Now he sees the fine print.' },
+  visor:    { name:'Sun Visor', icon:'🧢', slot:'head', rar:1, price:10, stats:{rangeMul:0.06}, note:'Cuts the glare. Extends the argument.' },
+  gloves:   { name:'Work Gloves', icon:'🧤', slot:'ring', rar:1, price:11, stats:{meleeMul:0.08}, note:'Grip strength of a man who owns a vise.' },
+  scope:    { name:'Bird Watching Scope', icon:'🔭', slot:'neck', rar:1, price:11, stats:{rangedMul:0.08}, note:'That is a red-tailed hawk. And a target.' },
+  propane:  { name:'Spare Propane', icon:'🔥', slot:'trinket', rar:1, price:11, stats:{blastMul:0.08}, note:'You can never have enough.' },
   /* uncommons: two stats, no strings attached */
-  insoles:  { name:'Gel Insoles', icon:'🦶', rar:2, price:16, stats:{move:14, dodge:0.02}, note:'Walking on clouds. Dodging on clouds.' },
-  thermos:  { name:'Big Thermos', icon:'☕', rar:2, price:17, stats:{regen:1, maxHP:4}, note:'Soup stays hot for nine hours.' },
-  vitamins: { name:'Costco Vitamins', icon:'🫙', rar:2, price:18, stats:{maxHP:8, regen:1}, note:'A tub the size of a toddler.' },
-  mulch:    { name:'Fresh Mulch Bag', icon:'🪵', rar:2, price:16, stats:{armor:1, thorns:2}, note:'Sharp cedar. Do not step in the beds.' },
-  sauce:    { name:'Secret BBQ Sauce', icon:'🥫', rar:2, price:17, stats:{burgerMul:0.5, maxHP:4}, note:'The recipe dies with him.' },
-  polo:     { name:'Moisture-Wick Polo', icon:'👕', rar:2, price:16, stats:{dodge:0.03, move:8}, note:'Breathable. Elusive.' },
-  rakes:    { name:'Matching Rakes', icon:'🧹', rar:2, price:18, stats:{meleeMul:0.12, atk:0.04}, note:'His and yours. Mostly his.' },
-  staples:  { name:'Staple Value Pack', icon:'📎', rar:2, price:18, stats:{rangedMul:0.12, atk:0.04}, note:'40,000 count. Family size.' },
-  gascan:   { name:'Spare Gas Can', icon:'⛽', rar:2, price:18, stats:{mowDur:1, ultNeed:-3}, note:'The mower drinks first.' },
-  horseshoe:{ name:'Lucky Horseshoe', icon:'🧲', rar:2, price:19, stats:{luck:0.1}, note:'Found it the day everything went right.' },
-  coupons:  { name:'Sunday Coupons', icon:'📰', rar:2, price:16, stats:{luck:0.08, pickup:20}, note:'Clipped with surgical precision.' },
-  kneepads: { name:'Knee Pads', icon:'🦵', rar:2, price:16, stats:{armor:1, maxHP:5}, note:'For gardening. And glory.' },
-  espresso: { name:'Double Espresso', icon:'🥃', rar:2, price:18, stats:{dashCdMax:-0.25, move:6}, note:'Decaf is for the machines.' },
-  manual:   { name:'Owner\'s Manual', icon:'📖', rar:2, price:17, stats:{rangeMul:0.08, crit:0.03}, note:'He actually read it.' },
+  insoles:  { name:'Gel Insoles', icon:'🦶', slot:'feet', rar:2, price:16, stats:{move:14, dodge:0.02}, note:'Walking on clouds. Dodging on clouds.' },
+  thermos:  { name:'Big Thermos', icon:'☕', slot:'trinket', rar:2, price:17, stats:{regen:1, maxHP:4}, note:'Soup stays hot for nine hours.' },
+  vitamins: { name:'Costco Vitamins', icon:'🫙', slot:'trinket', rar:2, price:18, stats:{maxHP:8, regen:1}, note:'A tub the size of a toddler.' },
+  mulch:    { name:'Mulch-Lined Waders', icon:'🪵', slot:'legs', rar:2, price:16, stats:{armor:1, thorns:2}, note:'Sharp cedar in every seam. Do not brush past him.' },
+  sauce:    { name:'Secret BBQ Sauce', icon:'🥫', slot:'trinket', rar:2, price:17, stats:{burgerMul:0.5, maxHP:4}, note:'The recipe dies with him.' },
+  polo:     { name:'Moisture-Wick Polo', icon:'👕', slot:'chest', rar:2, price:16, stats:{dodge:0.03, move:8}, note:'Breathable. Elusive.' },
+  rakes:    { name:'Matching Rakes', icon:'🧹', slot:'ring', rar:2, price:18, stats:{meleeMul:0.12, atk:0.04}, note:'His and yours. Mostly his.' },
+  staples:  { name:'Staple Value Pack', icon:'📎', slot:'ring', rar:2, price:18, stats:{rangedMul:0.12, atk:0.04}, note:'40,000 count. Family size.' },
+  gascan:   { name:'Spare Gas Can', icon:'⛽', slot:'trinket', rar:2, price:18, stats:{mowDur:1, ultNeed:-3}, note:'The mower drinks first.' },
+  horseshoe:{ name:'Lucky Horseshoe', icon:'🧲', slot:'neck', rar:2, price:19, stats:{luck:0.1}, note:'Found it the day everything went right.' },
+  coupons:  { name:'Sunday Coupons', icon:'📰', slot:'neck', rar:2, price:16, stats:{luck:0.08, pickup:20}, note:'Clipped with surgical precision.' },
+  kneepads: { name:'Knee Pads', icon:'🦵', slot:'legs', rar:2, price:16, stats:{armor:1, maxHP:5}, note:'For gardening. And glory.' },
+  espresso: { name:'Double Espresso', icon:'🥃', slot:'trinket', rar:2, price:18, stats:{dashCdMax:-0.25, move:6}, note:'Decaf is for the machines.' },
+  manual:   { name:'Owner\'s Manual', icon:'📖', slot:'neck', rar:2, price:17, stats:{rangeMul:0.08, crit:0.03}, note:'He actually read it.' },
   /* rares: bigger numbers, honest tradeoffs */
-  toolbelt: { name:'Loaded Tool Belt', icon:'🧰', rar:3, price:28, stats:{meleeMul:0.18, armor:1, move:-8}, note:'Heavy is the waist that wears the tools.' },
-  laser:    { name:'Laser Level', icon:'📏', rar:3, price:30, stats:{rangedMul:0.15, crit:0.05, rangeMul:0.08}, note:'Perfectly straight. Perfectly lethal.' },
-  fireworks:{ name:'Leftover Fireworks', icon:'🎆', rar:3, price:30, stats:{blastMul:0.2, areaMul:0.12}, note:'Saved since July. For emergencies.' },
-  recliner: { name:'Massage Recliner', icon:'🛋️', rar:3, price:28, stats:{maxHP:14, regen:2, move:-10}, note:'Nobody else is allowed in it.' },
-  smoothie: { name:'Kale Smoothie', icon:'🥤', rar:3, price:27, stats:{regen:2, dodge:0.03, move:8}, note:'He hates it. It works.' },
-  deadbolt: { name:'Smart Deadbolt', icon:'🔒', rar:3, price:28, stats:{armor:2, thorns:3}, note:'Now with revenge mode.' },
-  leafnet:  { name:'Pool Leaf Net', icon:'🥅', rar:3, price:26, stats:{pickup:50, luck:0.08}, note:'Catches leaves, bolts, and compliments.' },
-  whistle:  { name:'Backup Whistle', icon:'📣', rar:3, price:29, stats:{atk:0.08, meleeMul:0.1, dmg:0.05}, note:'The sound of accountability.' },
-  propcap:  { name:'Propeller Cap', icon:'🚁', rar:3, price:27, stats:{dodge:0.05, move:10, maxHP:-4}, note:'Aerodynamic. Embarrassing.' },
-  ribeye:   { name:'Ribeye Reserve', icon:'🥩', rar:3, price:30, stats:{lifesteal:0.02, dmg:0.06}, note:'Rare, like his approval.' },
-  drillbits:{ name:'Titanium Drill Bits', icon:'🪛', rar:3, price:30, stats:{crit:0.06, critMul:0.3}, note:'Goes through anything. Anything.' },
-  hoafine:  { name:'Framed HOA Fine', icon:'🖼️', rar:3, price:28, stats:{dmg:0.1, luck:0.05, maxHP:-5}, note:'He fought the fine. The fine lost.' },
-  soaker:   { name:'Mega Soaker 3000', icon:'🔫', rar:3, price:31, stats:{rangedMul:0.14, rangeMul:0.1, atk:0.05}, note:'Banned from three birthday parties.' },
-  charcoal: { name:'Artisan Charcoal', icon:'♨️', rar:3, price:28, stats:{blastMul:0.15, burgerMul:0.4}, note:'Small batch. Big flavor. Bigger boom.' },
+  toolbelt: { name:'Loaded Tool Belt', icon:'🧰', slot:'legs', rar:3, price:28, stats:{meleeMul:0.18, armor:1, move:-8}, note:'Heavy is the waist that wears the tools.' },
+  laser:    { name:'Laser Level', icon:'📏', slot:'neck', rar:3, price:30, stats:{rangedMul:0.15, crit:0.05, rangeMul:0.08}, note:'Perfectly straight. Perfectly lethal.' },
+  fireworks:{ name:'Leftover Fireworks', icon:'🎆', slot:'trinket', rar:3, price:30, stats:{blastMul:0.2, areaMul:0.12}, note:'Saved since July. For emergencies.' },
+  recliner: { name:'Recliner Rig', icon:'🛋️', slot:'chest', rar:3, price:28, stats:{maxHP:14, regen:2, move:-10}, note:'Massage cushions, worn as a vest. Nobody else is allowed in it.' },
+  smoothie: { name:'Kale Smoothie Cleats', icon:'🥤', slot:'feet', rar:3, price:27, stats:{regen:2, dodge:0.03, move:8}, note:'He hates them. They work.' },
+  deadbolt: { name:'Deadbolt Chestplate', icon:'🔒', slot:'chest', rar:3, price:28, stats:{armor:2, thorns:3}, note:'Smart lock. Now with revenge mode.' },
+  leafnet:  { name:'Pool Leaf Net', icon:'🥅', slot:'neck', rar:3, price:26, stats:{pickup:50, luck:0.08}, note:'Catches leaves, bolts, and compliments.' },
+  whistle:  { name:'Backup Whistle', icon:'📣', slot:'neck', rar:3, price:29, stats:{atk:0.08, meleeMul:0.1, dmg:0.05}, note:'The sound of accountability.' },
+  propcap:  { name:'Propeller Cap', icon:'🚁', slot:'head', rar:3, price:27, stats:{dodge:0.05, move:10, maxHP:-4}, note:'Aerodynamic. Embarrassing.' },
+  ribeye:   { name:'Ribeye Reserve', icon:'🥩', slot:'trinket', rar:3, price:30, stats:{lifesteal:0.02, dmg:0.06}, note:'Rare, like his approval.' },
+  drillbits:{ name:'Titanium Drill Bits', icon:'🪛', slot:'ring', rar:3, price:30, stats:{crit:0.06, critMul:0.3}, note:'Goes through anything. Anything.' },
+  hoafine:  { name:'Framed HOA Fine', icon:'🖼️', slot:'neck', rar:3, price:28, stats:{dmg:0.1, luck:0.05, maxHP:-5}, note:'He fought the fine. The fine lost. He wears it now.' },
+  soaker:   { name:'Mega Soaker 3000', icon:'🔫', slot:'trinket', rar:3, price:31, stats:{rangedMul:0.14, rangeMul:0.1, atk:0.05}, note:'Holstered. Banned from three birthday parties.' },
+  charcoal: { name:'Artisan Charcoal', icon:'♨️', slot:'trinket', rar:3, price:28, stats:{blastMul:0.15, burgerMul:0.4}, note:'Small batch. Big flavor. Bigger boom.' },
   /* epics: build-defining stat piles */
-  socket:   { name:'Socket Wrench Set', icon:'🔧', rar:4, price:48, stats:{atk:0.12, meleeMul:0.15, rangedMul:0.15, move:-6}, note:'Metric AND imperial. A complete man.' },
-  ledger:   { name:'Family Budget Ledger', icon:'📒', rar:4, price:46, stats:{luck:0.12, pickup:30, priceMul:-0.08}, note:'Every bolt accounted for.' },
-  flannel:  { name:'Weekend Armor (Flannel)', icon:'🧥', rar:4, price:50, stats:{maxHP:16, armor:2, dodge:0.03, move:-10}, note:'Triple-layered. Machine washable.' },
-  coldbrew: { name:'Quad-Shot Cold Brew', icon:'🧊', rar:4, price:48, stats:{dashCdMax:-0.5, atk:0.08, move:12, maxHP:-6}, note:'His heart is fine. Probably.' },
-  bifocals: { name:'Prescription Bifocals', icon:'🥽', rar:4, price:52, stats:{crit:0.08, critMul:0.5, rangeMul:0.08}, note:'Sees weak points. And fine print. Everywhere.' },
-  grillfork:{ name:'Midnight Grill Fork', icon:'🍴', rar:4, price:52, stats:{lifesteal:0.03, dmg:0.08, blastMul:0.1}, note:'Forged at 2am over open flame.' },
-  warranty: { name:'Extended Warranty', icon:'📜', rar:4, price:47, stats:{maxHP:10, armor:1, dodge:0.04, luck:0.08}, note:'For once, it actually paid off.' },
-  mowerkeys:{ name:'Riding Mower Keys', icon:'🔑', rar:4, price:54, stats:{ultNeed:-9, mowDur:2}, note:'The good mower. The forbidden mower.' },
-  fridge:   { name:'Garage Mini Fridge', icon:'🧊', rar:4, price:55, stats:{maxHP:6}, ability:'fridge', note:'A cold burger waits at the start of every wave.' },
-  bugzap:   { name:'Industrial Bug Zapper', icon:'💡', rar:4, price:55, stats:{}, ability:'zapaura', note:'Machines near you sizzle for 3 damage a second.' },
-  /* legendaries: once per run, from wave 5 */
-  gnome:    { name:'Garden Gnome of War', icon:'🗿', rar:5, price:95, stats:{}, ability:'gnome', note:'A gnome joins the fight. He has a staple gun and no fear.' },
-  overtime: { name:'Overtime Pay', icon:'💼', rar:5, price:90, stats:{}, ability:'overtime', note:'+1 bolt every 3 seconds. The grind never stops.' },
-  mortgage: { name:'Second Mortgage', icon:'🏠', rar:5, price:85, stats:{}, ability:'mortgage', note:'+70 bolts right now. Shop prices +10% for the rest of the run.' },
-  spatula:  { name:'The Golden Spatula', icon:'🥄', rar:5, price:100, stats:{burgerMul:1, lifesteal:0.02, maxHP:10}, note:'Burgers heal double again. The cul-de-sac kneels.' },
-  gavel:    { name:'HOA President\'s Gavel', icon:'🔨', rar:5, price:110, stats:{dmg:0.15, areaMul:0.2, auraSlow:0.1}, note:'Order. ORDER.' },
-  trophy:   { name:'Yard of the Month Trophy', icon:'🏆', rar:5, price:105, stats:{luck:0.2, dmg:0.08, atk:0.08, move:10}, note:'The committee has spoken.' },
+  socket:   { name:'Socket Wrench Set', icon:'🔧', slot:'ring', rar:4, price:48, stats:{atk:0.12, meleeMul:0.15, rangedMul:0.15, move:-6}, note:'Metric AND imperial. A complete man.' },
+  ledger:   { name:'Family Budget Ledger', icon:'📒', slot:'neck', rar:4, price:46, stats:{luck:0.12, pickup:30, priceMul:-0.08}, note:'Every bolt accounted for.' },
+  flannel:  { name:'Weekend Armor (Flannel)', icon:'🧥', slot:'chest', rar:4, price:50, stats:{maxHP:16, armor:2, dodge:0.03, move:-10}, note:'Triple-layered. Machine washable.' },
+  coldbrew: { name:'Quad-Shot Cold Brew', icon:'🧊', slot:'trinket', rar:4, price:48, stats:{dashCdMax:-0.5, atk:0.08, move:12, maxHP:-6}, note:'His heart is fine. Probably.' },
+  bifocals: { name:'Prescription Bifocals', icon:'🥽', slot:'head', rar:4, price:52, stats:{crit:0.08, critMul:0.5, rangeMul:0.08}, note:'Sees weak points. And fine print. Everywhere.' },
+  grillfork:{ name:'Midnight Grill Fork', icon:'🍴', slot:'ring', rar:4, price:52, stats:{lifesteal:0.03, dmg:0.08, blastMul:0.1}, note:'Forged at 2am over open flame.' },
+  warranty: { name:'Extended Warranty', icon:'📜', slot:'trinket', rar:4, price:47, stats:{maxHP:10, armor:1, dodge:0.04, luck:0.08}, note:'For once, it actually paid off.' },
+  mowerkeys:{ name:'Riding Mower Keys', icon:'🔑', slot:'ring', rar:4, price:54, stats:{ultNeed:-9, mowDur:2}, note:'On his finger at all times. The good mower. The forbidden mower.' },
+  fridge:   { name:'Garage Mini Fridge', icon:'🧊', slot:'trinket', rar:4, price:55, stats:{maxHP:6}, ability:'fridge', note:'A cold burger waits at the start of every wave.' },
+  bugzap:   { name:'Industrial Bug Zapper', icon:'💡', slot:'trinket', rar:4, price:55, stats:{}, ability:'zapaura', note:'Machines near you sizzle for 3 damage a second.' },
+  /* legendaries: from wave 5. two copies to empower one */
+  gnome:    { name:'Garden Gnome of War', icon:'🗿', slot:'trinket', rar:5, price:95, stats:{}, ability:'gnome', note:'A gnome joins the fight. He has a staple gun and no fear.' },
+  overtime: { name:'Overtime Pay', icon:'💼', slot:'trinket', rar:5, price:90, stats:{}, ability:'overtime', note:'+1 bolt every 3 seconds. The grind never stops.' },
+  mortgage: { name:'Second Mortgage', icon:'🏠', slot:'trinket', rar:5, price:85, stats:{}, ability:'mortgage', note:'+70 bolts on equip. Shop prices +10% while worn.' },
+  spatula:  { name:'The Golden Spatula', icon:'🥄', slot:'ring', rar:5, price:100, stats:{burgerMul:1, lifesteal:0.02, maxHP:10}, note:'Burgers heal double again. The cul-de-sac kneels.' },
+  gavel:    { name:'HOA President\'s Gavel', icon:'🔨', slot:'ring', rar:5, price:110, stats:{dmg:0.15, areaMul:0.2, auraSlow:0.1}, note:'Order. ORDER.' },
+  trophy:   { name:'Yard of the Month Trophy', icon:'🏆', slot:'trinket', rar:5, price:105, stats:{luck:0.2, dmg:0.08, atk:0.08, move:10}, note:'The committee has spoken.' },
 };
 const EDEFS = {
   chat:{ name:'Chatbot', hp:8, spd:96, dmg:3, r:12, cost:1, minW:1, mats:1, weight:10, ai:'chase' },
@@ -152,7 +180,6 @@ const EDEFS = {
 };
 const WAVE_DUR = [0,30,35,40,45,50,55,60,65,70,70,70,70,70,70,75,75,75,75,75,80];
 const FINAL_WAVE = 20;
-const MAX_SLOTS = 6;
 const ULT_NEED = 45; /* seconds of play to charge the mower */
 const BOSS_WAVES = {5:'algo', 10:'subs', 15:'cloud', 20:'boss'};
 /* boss lookup that keeps working in endless mode: every 5th wave past 20

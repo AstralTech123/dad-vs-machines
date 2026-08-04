@@ -16,15 +16,26 @@ function baseStats(){
     ultNeed:45, mowDur:5 };
 }
 function mkPlayer(pad,champ){
-  return {
+  const pl={
     pad:(pad===undefined?null:pad), champ:champ||'dad', perk:null,
     stats:baseStats(), hp:50, lsAcc:0,
     body:{ x:1300, y:1000, vx:0, vy:0, face:1, bob:0, iframe:0, regenT:0, dead:false, deadT:0, lean:0,
       dashCd:0, dashT:0, ddx:1, ddy:0, bvx:0, bvy:0, mowT:0, ult:0, trampCd:0, champ:champ||'dad' },
-    weapons:[ mkWeapon('stapler',1) ],
-    itemCounts:{}, abil:{},
+    /* ten equipment slots + backpack; weapons[] is a DERIVED view of w1/w2
+       kept in sync by syncWeapons so combat code can just iterate it */
+    gear:{ w1:mkWeapon('stapler'), w2:null, head:null, chest:null, legs:null,
+      feet:null, neck:null, ring1:null, ring2:null, trinket:null },
+    pack:[], packMax:PACK_BASE,
+    weapons:[], abil:{},
     reviveT:0, earned:0,
   };
+  syncWeapons(pl);
+  return pl;
+}
+function syncWeapons(pl){
+  pl.weapons.length=0;
+  if(pl.gear.w1) pl.weapons.push(pl.gear.w1);
+  if(pl.gear.w2) pl.weapons.push(pl.gear.w2);
 }
 /* the whole codebase reads G.player/G.stats/G.hp/...; those are ALIASES to
    the currently active player. setActive points them at a player, saveActive
@@ -32,7 +43,7 @@ function mkPlayer(pad,champ){
 function setActive(pl){
   G.active=pl;
   G.player=pl.body; G.stats=pl.stats; G.weapons=pl.weapons;
-  G.itemCounts=pl.itemCounts; G.abil=pl.abil;
+  G.gear=pl.gear; G.pack=pl.pack; G.abil=pl.abil;
   G.hp=pl.hp; G.champ=pl.champ; G.perk=pl.perk; G.lsAcc=pl.lsAcc;
 }
 function saveActive(){
@@ -73,7 +84,11 @@ function newGame(){
   for(const fl of FLAM){ fl.up=true; fl.f=0; }
   updateHUD(); renderSlots();
 }
-function mkWeapon(key,tier){ return { key, tier, cd:rand(0,0.3), aim:rand(0,TAU), recoil:0, orbitA:rand(0,TAU), flash:0 }; }
+/* gear instances: weapons carry combat runtime state, armor pieces do not.
+   copies counts toward EMPOWER_NEED; emp marks an empowered piece */
+function mkWeapon(key){ return { kind:'w', key, copies:1, emp:false, curse:null, used:false,
+  cd:rand(0,0.3), aim:rand(0,TAU), recoil:0, orbitA:rand(0,TAU), flash:0 }; }
+function mkGearItem(key){ return { kind:'i', key, copies:1, emp:false, curse:null, used:false }; }
 
 /* ---------------- input: keyboard + touch (player 1) ---------------- */
 /* keyboard presets, saved in the browser. touch and gamepads are automatic. */
