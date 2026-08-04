@@ -347,12 +347,19 @@ function renderCsDetail(){
   const curse=g.curse?`<br><span style="color:#ff5a5f">CURSE: ${STAT_FMT[g.curse[0]]?STAT_FMT[g.curse[0]](g.curse[1]):g.curse[0]+' '+g.curse[1]}</span>`:'';
   const copies=g.emp?'⭐ EMPOWERED':`copies ${g.copies}/${EMPOWER_NEED[d.rar]} to empower`;
   const good=goodForChamp(pl.champ,d)?' · <span style="color:#9be06f">★ good for '+(CHAMPS[pl.champ].name)+'</span>':'';
+  let setHTML='';
+  if(d.set){
+    const S=SETS[d.set], worn=setWornCount(pl,d.set);
+    const bl=Object.entries(S.bonuses).map(([n,b])=>
+      `<span style="color:${worn>=Number(n)?'#9be06f':'#7c8272'}">(${n}) ${b.desc}${worn>=Number(n)?' ✔':''}</span>`).join(' · ');
+    setHTML=`<br><span style="color:${S.color}">◆ ${S.name} · ${worn} worn</span><br>${bl}`;
+  }
   box.innerHTML=`<span class="dname">${d.icon||''} ${d.name}</span> `+
     `<span class="dtag" style="color:${r.color}">${r.name} · ${gearTypeTag(d)}</span><br>`+
     (weapLine?`<span style="color:#ece7db">${weapLine}</span><br>`:'')+
     (lines?`<span style="color:#ece7db">${lines}</span><br>`:'')+
     `<span>${d.note||d.desc||''}</span>${curse}<br>`+
-    `<span style="color:#a39c8a">${copies}${good}</span>`+
+    `<span style="color:#a39c8a">${copies}${good}</span>${setHTML}`+
     `<div class="dbtns"></div>`;
   const btns=box.querySelector('.dbtns');
   const mkB=(txt,fn)=>{ const b=document.createElement('button'); b.textContent=txt; b.addEventListener('click',fn); btns.appendChild(b); };
@@ -443,7 +450,11 @@ function buildGuide(){
     3 epic, 2 legendary): bigger stats, stronger effects. Spare gear waits in your 12-slot
     backpack, swap freely between waves. Legendaries appear from wave 5. Luck improves your
     odds at everything. Watch for <span style="color:#ff5a5f">CURSED</span> pieces: 40% off,
-    but the discount costs you something real while worn.</p>
+    but the discount costs you something real while worn.<br>
+    The shop guarantees ONE piece each visit that fits your champ (the ★ card). The rest is
+    honest loot: sometimes treasure, sometimes garbage for your build. Marked ◆ pieces belong
+    to TIER SETS: wear 2 or more together for set bonuses, topped by Thunder Dad's lightning
+    and The Patriarch's Vestments.</p>
     <h3>WEAPONS</h3>
     <p>Two weapon slots. Weapons decide what you swing or shoot; your champ's class bonus
     decides how hard. MELEE, RANGED, or EXPLOSIVE, always printed on the card.</p>

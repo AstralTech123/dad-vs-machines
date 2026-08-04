@@ -138,6 +138,7 @@ function applyChamp(key){
   pl.pack.length=0; pl.packMax=PACK_BASE;
   pl.gear.w1=mkWeapon(c.weapon||'stapler');
   syncWeapons(pl);
+  refreshSets(pl);
   updateHUD(); renderSlots();
 }
 function flavor(n){
@@ -1365,6 +1366,40 @@ function applyAbility(ab,inst,dir){
     G.abil[ab]=(G.abil[ab]||0)+n;
   }
 }
+/* ---------------- tier sets ---------------- */
+function setWornCount(pl,setKey){
+  let n=0;
+  for(const [sk] of GEAR_SLOTS){ const g=pl.gear[sk]; if(g && gearDef(g).set===setKey) n++; }
+  return n;
+}
+/* recompute set bonuses from the worn pieces. called after every gear
+   mutation, always with pl as the ACTIVE player (same rule as applyGearMods).
+   bonuses toggle exactly once per threshold crossing, so stats stay honest */
+function refreshSets(pl){
+  pl.setApplied=pl.setApplied||{};
+  for(const setKey in SETS){
+    const S=SETS[setKey], have=setWornCount(pl,setKey);
+    for(const need in S.bonuses){
+      const key=setKey+':'+need, B=S.bonuses[need];
+      const on=have>=Number(need);
+      if(on && !pl.setApplied[key]){
+        for(const k in (B.stats||{})){
+          G.stats[k]+=B.stats[k];
+          if(k==='maxHP' && B.stats[k]>0) G.hp+=B.stats[k];
+        }
+        if(B.abil) G.abil[B.abil]=(G.abil[B.abil]||0)+1;
+        pl.setApplied[key]=true;
+        toast('⚙ SET BONUS · '+S.name+' ('+need+'): '+B.desc);
+        sfx.combine();
+      } else if(!on && pl.setApplied[key]){
+        for(const k in (B.stats||{})) G.stats[k]-=B.stats[k];
+        if(B.abil) G.abil[B.abil]=(G.abil[B.abil]||0)-1;
+        pl.setApplied[key]=false;
+      }
+    }
+  }
+  G.hp=Math.max(1, Math.min(G.hp, Math.max(1,G.stats.maxHP)));
+}
 function empower(pl,inst){
   const d=gearDef(inst);
   const equipped=GEAR_SLOTS.some(([sk])=>pl.gear[sk]===inst);
@@ -1375,7 +1410,7 @@ function empower(pl,inst){
   sfx.legendary();
   renderSlots();
 }
-function equipInto(pl,sk,inst){ pl.gear[sk]=inst; applyGearMods(inst,+1); syncWeapons(pl); }
+function equipInto(pl,sk,inst){ pl.gear[sk]=inst; applyGearMods(inst,+1); syncWeapons(pl); refreshSets(pl); }
 /* pack -> body. if every fitting slot is taken, swaps with the first one */
 function equipFromPack(pl,pi){
   const inst=pl.pack[pi]; if(!inst) return;
@@ -1395,7 +1430,7 @@ function unequipSlot(pl,sk){
   const inst=pl.gear[sk]; if(!inst) return;
   if(inst.kind==='w' && pl.weapons.length<=1){ toast('Keep at least one weapon equipped'); return; }
   if(packFull(pl)){ toast('Backpack is full'); return; }
-  pl.gear[sk]=null; applyGearMods(inst,-1); syncWeapons(pl);
+  pl.gear[sk]=null; applyGearMods(inst,-1); syncWeapons(pl); refreshSets(pl);
   pl.pack.push(inst);
 }
 function sellValue(inst){
@@ -1413,7 +1448,7 @@ function sellGear(pl,loc,ref){
       toast('Keep at least one weapon equipped');
       saveActive(); if(prev) setActive(prev); return;
     }
-    if(inst){ pl.gear[ref]=null; applyGearMods(inst,-1); syncWeapons(pl); }
+    if(inst){ pl.gear[ref]=null; applyGearMods(inst,-1); syncWeapons(pl); refreshSets(pl); }
   }
   if(inst){
     const val=sellValue(inst);
@@ -1454,42 +1489,33 @@ function rarityRoll(){
 /* every player has their own shelf, rolled with their own luck, class rules,
    and prices, so the whole couch shops simultaneously */
 function shopOfferCount(){ return G.players.length>1 ? 3 : 4; }
-/* an item is pointless for a champ when its ONLY stat is a class damage
-   multiplier for a class they cannot equip */
-function itemUsable(k){
-  const st=ITEMS[k].stats||{};
-  const keys=Object.keys(st);
-  if(keys.length===1){
-    const kk=keys[0];
-    if(kk==='meleeMul' && !champCanUse('melee')) return false;
-    if(kk==='rangedMul' && !champCanUse('ranged')) return false;
-    if(kk==='blastMul' && !champCanUse('blast')) return false;
-  }
-  return true;
-}
+/* (no usability filter anymore: WoW rules, the shelf can hold pieces that do
+   nothing for your class. caveat emptor, read the card) */
+/* WoW loot rules: ONE offer per shop is guaranteed relevant to your champ,
+   the rest are honest random drops. sometimes the shelf is garbage for you,
+   that is the point: spend the surplus on yard work and empower copies */
 function rollOffersFor(pl){
   const prev=G.active; saveActive(); setActive(pl);
   /* locked offers survive rerolls and carry into the next wave's shop */
   const offers=(pl.offers||[]).filter(o=>o.locked&&!o.sold);
-  const pref=(CHAMPS[G.champ]||{}).wpref;
   /* a key leaves the shop once your copy is empowered */
   const open=k=>{ const inst=ownedInst(pl,k); return !(inst&&inst.emp); };
+  const poolAt=(rar,relevant)=>{
+    const wp=Object.keys(WEAPONS).filter(k=> (rar===0||WEAPONS[k].rar===rar) && champCanUse(WEAPONS[k].cls)
+      && open(k) && (!relevant || goodForChamp(G.champ,WEAPONS[k])));
+    const ip=Object.keys(ITEMS).filter(k=> (rar===0||ITEMS[k].rar===rar) && open(k)
+      && (!relevant || goodForChamp(G.champ,ITEMS[k])));
+    /* weapons are rarer defs, so extra weight keeps them ~1 in 4 offers */
+    return [...wp.map(k=>[['w',k],2.2]), ...ip.map(k=>[['i',k],1])];
+  };
+  let needRelevant=!offers.some(o=>o.relevant);
   for(let i=offers.length;i<shopOfferCount();i++){
     const rar=rarityRoll();
-    const wpool=Object.keys(WEAPONS).filter(k=> WEAPONS[k].rar===rar && champCanUse(WEAPONS[k].cls) && open(k));
-    const ipool=Object.keys(ITEMS).filter(k=> ITEMS[k].rar===rar && open(k) && itemUsable(k));
-    /* weapons are rarer defs, so they get extra weight to stay ~1 in 4 offers */
-    let pool=[
-      ...wpool.map(k=>[['w',k], (WEAPONS[k].cls===pref?2.5:1)*2.2]),
-      ...ipool.map(k=>{ const st=ITEMS[k].stats||{}; return [['i',k], (pref&&st[pref+'Mul'])?2.5:1]; }),
-    ];
-    if(!pool.length){
-      pool=[
-        ...Object.keys(WEAPONS).filter(k=>champCanUse(WEAPONS[k].cls)&&open(k)).map(k=>[['w',k],1]),
-        ...Object.keys(ITEMS).filter(k=>open(k)&&itemUsable(k)).map(k=>[['i',k],1]),
-      ];
-    }
-    if(!pool.length) break; /* everything owned and empowered: shelf runs dry */
+    const relevant=needRelevant; needRelevant=false;
+    let pool=poolAt(rar,relevant);
+    if(!pool.length) pool=poolAt(0,relevant);  /* any rarity, keep the guarantee */
+    if(!pool.length) pool=poolAt(0,false);     /* champ owns every relevant piece */
+    if(!pool.length) break;                    /* everything owned and empowered */
     const [kind,key]=wpick(pool);
     const d=(kind==='w')?WEAPONS[key]:ITEMS[key];
     let curse=null, price=priceOf(kind,key);
@@ -1497,7 +1523,7 @@ function rollOffersFor(pl){
       curse=pick([['maxHP',-6],['move',-12],['armor',-1],['dodge',-0.03],['luck',-0.08]]);
       price=Math.max(1,Math.round(price*0.6));
     }
-    offers.push({ kind, key, rar:d.rar, price, curse, sold:false });
+    offers.push({ kind, key, rar:d.rar, price, curse, relevant, sold:false });
   }
   pl.offers=offers;
   saveActive(); if(prev) setActive(prev);
@@ -1613,6 +1639,10 @@ function offerCard(pl,pi,o,i,small){
   if(o.curse){
     const cf=STAT_FMT[o.curse[0]];
     desc+=`<br><span style="color:#ff5a5f">CURSE: ${cf?cf(o.curse[1]):o.curse[0]+' '+o.curse[1]}</span>`;
+  }
+  if(d.set){
+    const S=SETS[d.set];
+    desc+=`<br><span style="color:${S.color}">◆ ${S.name} set (${setWornCount(pl,d.set)} worn)</span>`;
   }
   const owned=ownedInst(pl,o.key);
   const need=EMPOWER_NEED[d.rar];

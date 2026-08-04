@@ -93,6 +93,25 @@ function goodForChamp(champ,it){
    definition tables but share the instance model */
 function gearDef(inst){ return inst.kind==='w' ? WEAPONS[inst.key] : ITEMS[inst.key]; }
 function defByKey(key){ return WEAPONS[key] || ITEMS[key]; }
+
+/* ---------------- tier sets ----------------
+   wear pieces of a set together for bonuses, WoW style. bonuses key on the
+   number of pieces WORN (backpack does not count). stats apply/reverse in
+   refreshSets; an optional abil grants an on-hit power at the top bonus. */
+const SETS = {
+  casual: { name:'Cul-de-sac Casual', color:'#9be06f',
+    bonuses:{ 2:{ desc:'+8 Move Speed', stats:{move:8} },
+              4:{ desc:'+4% Dodge and +5% Attack Speed', stats:{dodge:0.04, atk:0.05} } } },
+  grillmaster: { name:'Grillmaster\'s Regalia', color:'#6aa8f0',
+    bonuses:{ 2:{ desc:'Burgers heal +40%', stats:{burgerMul:0.4} },
+              4:{ desc:'+2 Armor and +15% Blast damage', stats:{armor:2, blastMul:0.15} } } },
+  thunder: { name:'Thunder Dad', color:'#c48df0',
+    bonuses:{ 2:{ desc:'+40% Crit damage', stats:{critMul:0.4} },
+              3:{ desc:'Your hits arc lightning', stats:{}, abil:'static' } } },
+  patriarch: { name:'The Patriarch\'s Vestments', color:'#ffd166',
+    bonuses:{ 2:{ desc:'+10% Damage', stats:{dmg:0.1} },
+              4:{ desc:'+20 Max HP, +10% Attack Speed, +10% Luck', stats:{maxHP:20, atk:0.1, luck:0.1} } } },
+};
 /* every non-weapon piece names its equipment slot: head, chest, legs, feet,
    neck, ring (fits either ring finger), or trinket */
 const ITEMS = {
@@ -110,16 +129,16 @@ const ITEMS = {
   scope:    { name:'Bird Watching Scope', icon:'🔭', slot:'neck', rar:1, price:11, stats:{rangedMul:0.08}, note:'That is a red-tailed hawk. And a target.' },
   propane:  { name:'Spare Propane', icon:'🔥', slot:'trinket', rar:1, price:11, stats:{blastMul:0.08}, note:'You can never have enough.' },
   /* uncommons: two stats, no strings attached */
-  insoles:  { name:'Gel Insoles', icon:'🦶', slot:'feet', rar:2, price:16, stats:{move:14, dodge:0.02}, note:'Walking on clouds. Dodging on clouds.' },
+  insoles:  { name:'Gel Insoles', icon:'🦶', slot:'feet', set:'casual', rar:2, price:16, stats:{move:14, dodge:0.02}, note:'Walking on clouds. Dodging on clouds.' },
   thermos:  { name:'Big Thermos', icon:'☕', slot:'trinket', rar:2, price:17, stats:{regen:1, maxHP:4}, note:'Soup stays hot for nine hours.' },
   vitamins: { name:'Costco Vitamins', icon:'🫙', slot:'trinket', rar:2, price:18, stats:{maxHP:8, regen:1}, note:'A tub the size of a toddler.' },
   mulch:    { name:'Mulch-Lined Waders', icon:'🪵', slot:'legs', rar:2, price:16, stats:{armor:1, thorns:2}, note:'Sharp cedar in every seam. Do not brush past him.' },
   sauce:    { name:'Secret BBQ Sauce', icon:'🥫', slot:'trinket', rar:2, price:17, stats:{burgerMul:0.5, maxHP:4}, note:'The recipe dies with him.' },
-  polo:     { name:'Moisture-Wick Polo', icon:'👕', slot:'chest', rar:2, price:16, stats:{dodge:0.03, move:8}, note:'Breathable. Elusive.' },
+  polo:     { name:'Moisture-Wick Polo', icon:'👕', slot:'chest', set:'casual', rar:2, price:16, stats:{dodge:0.03, move:8}, note:'Breathable. Elusive.' },
   rakes:    { name:'Matching Rakes', icon:'🧹', slot:'ring', rar:2, price:18, stats:{meleeMul:0.12, atk:0.04}, note:'His and yours. Mostly his.' },
   staples:  { name:'Staple Value Pack', icon:'📎', slot:'ring', rar:2, price:18, stats:{rangedMul:0.12, atk:0.04}, note:'40,000 count. Family size.' },
   gascan:   { name:'Spare Gas Can', icon:'⛽', slot:'trinket', rar:2, price:18, stats:{mowDur:1, ultNeed:-3}, note:'The mower drinks first.' },
-  horseshoe:{ name:'Lucky Horseshoe', icon:'🧲', slot:'neck', rar:2, price:19, stats:{luck:0.1}, note:'Found it the day everything went right.' },
+  horseshoe:{ name:'Lucky Horseshoe', icon:'🧲', slot:'neck', set:'casual', rar:2, price:19, stats:{luck:0.1}, note:'Found it the day everything went right.' },
   coupons:  { name:'Sunday Coupons', icon:'📰', slot:'neck', rar:2, price:16, stats:{luck:0.08, pickup:20}, note:'Clipped with surgical precision.' },
   kneepads: { name:'Knee Pads', icon:'🦵', slot:'legs', rar:2, price:16, stats:{armor:1, maxHP:5}, note:'For gardening. And glory.' },
   espresso: { name:'Double Espresso', icon:'🥃', slot:'trinket', rar:2, price:18, stats:{dashCdMax:-0.25, move:6}, note:'Decaf is for the machines.' },
@@ -153,28 +172,28 @@ const ITEMS = {
   /* the variety pass: head to toe for every build */
   hardhat:  { name:'Weekend Hard Hat', icon:'⛑️', slot:'head', rar:1, price:11, stats:{armor:1}, note:'OSHA compliant since the ladder incident.' },
   headlamp: { name:'Camping Headlamp', icon:'🔦', slot:'head', rar:2, price:17, stats:{rangeMul:0.08, crit:0.02}, note:'Hands-free illumination of weak points.' },
-  earbuds:  { name:'Wireless Earbuds', icon:'🎧', slot:'head', rar:2, price:17, stats:{atk:0.05, move:6}, note:'One podcast from unstoppable.' },
+  earbuds:  { name:'Wireless Earbuds', icon:'🎧', slot:'head', set:'casual', rar:2, price:17, stats:{atk:0.05, move:6}, note:'One podcast from unstoppable.' },
   foamdome: { name:'Foam Dome', icon:'🍺', slot:'head', rar:3, price:27, stats:{maxHP:8, regen:1}, note:'Hydration helmet. Do not ask what is in it.' },
   warpaint: { name:'Zinc Warpaint', icon:'🖌️', slot:'head', rar:4, price:50, stats:{dmg:0.1, crit:0.04}, note:'SPF 50. Fear 100.' },
-  crown:    { name:'Cul-de-sac Crown', icon:'👑', slot:'head', rar:5, price:100, stats:{dmg:0.1, luck:0.1, maxHP:8, atk:0.06}, note:'Won at the block party. Never removed.' },
+  crown:    { name:'Cul-de-sac Crown', icon:'👑', slot:'head', set:'patriarch', rar:5, price:100, stats:{dmg:0.1, luck:0.1, maxHP:8, atk:0.06}, note:'Won at the block party. Never removed.' },
   apron:    { name:'Kiss the Cook Apron', icon:'🍳', slot:'chest', rar:1, price:10, stats:{burgerMul:0.4}, note:'The shirt says kiss. The eyes say run.' },
   hiviz:    { name:'Hi-Vis Vest', icon:'🦺', slot:'chest', rar:1, price:11, stats:{armor:1, pickup:15}, note:'Impossible to ignore. Like his advice.' },
   lifevest: { name:'Boat Day Life Vest', icon:'🛟', slot:'chest', rar:2, price:17, stats:{maxHP:8, dodge:0.02}, note:'Safety third.' },
   jersey:   { name:'Rec League Jersey', icon:'🏈', slot:'chest', rar:3, price:28, stats:{atk:0.06, meleeMul:0.1, move:6}, note:'Retired the number himself.' },
   grillplate:{ name:'Grill Lid Aegis', icon:'🛡️', slot:'chest', rar:4, price:52, stats:{armor:3, thorns:4, move:-8}, note:'The Weber holds the line.' },
-  robe:     { name:'Sacred Bathrobe', icon:'🥋', slot:'chest', rar:5, price:105, stats:{maxHP:14, regen:2, dodge:0.04, burgerMul:0.5}, note:'Saturday armor of the highest order.' },
+  robe:     { name:'Sacred Bathrobe', icon:'🥋', slot:'chest', set:'patriarch', rar:5, price:105, stats:{maxHP:14, regen:2, dodge:0.04, burgerMul:0.5}, note:'Saturday armor of the highest order.' },
   sweatpants:{ name:'Championship Sweatpants', icon:'👖', slot:'legs', rar:1, price:10, stats:{maxHP:5, move:4}, note:'Elastic waist, elastic destiny.' },
   jorts:    { name:'Lucky Jorts', icon:'🩳', slot:'legs', rar:1, price:11, stats:{luck:0.05, move:5}, note:'Scissors plus jeans equals freedom.' },
   chaps:    { name:'Weed-Eater Chaps', icon:'🤠', slot:'legs', rar:3, price:28, stats:{meleeMul:0.14, armor:1}, note:'Professional grade. Ankles intact.' },
   joggers:  { name:'Marathon Joggers', icon:'🏃', slot:'legs', rar:3, price:28, stats:{move:14, dodge:0.03, atk:0.04}, note:'He ran a 5k once. Once.' },
   powerbelt:{ name:'Power Lifting Belt', icon:'🏋️', slot:'legs', rar:4, price:50, stats:{meleeMul:0.12, rangedMul:0.12, atk:0.06}, note:'Lift with the legs. Destroy with the core.' },
-  patriarch:{ name:'Pants of the Patriarch', icon:'🎖️', slot:'legs', rar:5, price:105, stats:{maxHP:10, armor:2, move:10, dmg:0.08}, note:'Passed down. Ironed forever.' },
+  patriarch:{ name:'Pants of the Patriarch', icon:'🎖️', slot:'legs', set:'patriarch', rar:5, price:105, stats:{maxHP:10, armor:2, move:10, dmg:0.08}, note:'Passed down. Ironed forever.' },
   crocs:    { name:'Garden Crocs', icon:'🐊', slot:'feet', rar:1, price:10, stats:{dodge:0.02, move:6}, note:'Sport mode engaged.' },
   woolsocks:{ name:'Wool Hiking Socks', icon:'🧦', slot:'feet', rar:2, price:16, stats:{regen:1, maxHP:4}, note:'Knitted by grandma. Reinforced by spite.' },
   steeltoe: { name:'Steel-Toe Boots', icon:'🥾', slot:'feet', rar:3, price:29, stats:{armor:2, meleeMul:0.08, move:-4}, note:'For when the Roomba gets brave.' },
   cleats:   { name:'Aerating Cleats', icon:'⚽', slot:'feet', rar:3, price:28, stats:{move:12, atk:0.05}, note:'The lawn thanks him. The machines do not.' },
   slippers: { name:'Silent Slippers', icon:'🥿', slot:'feet', rar:4, price:50, stats:{dodge:0.05, move:10, regen:1}, note:'Stealth technology, fleece lined.' },
-  moonboots:{ name:'Moon Boots', icon:'🚀', slot:'feet', rar:5, price:100, stats:{move:16, atk:0.08, dodge:0.04}, note:'Trampoline-certified. Every step slightly illegal.' },
+  moonboots:{ name:'Moon Boots', icon:'🚀', slot:'feet', set:'patriarch', rar:5, price:100, stats:{move:16, atk:0.08, dodge:0.04}, note:'Trampoline-certified. Every step slightly illegal.' },
   /* new mechanics: a bigger bag and on-hit effects */
   duffel:   { name:'Hiking Duffel', icon:'🎒', slot:'trinket', rar:3, price:32, stats:{pickup:20}, ability:'bigpack', note:'First equip adds 4 backpack slots for the run. The straps mean business.' },
   staticband:{ name:'Static Wristband', icon:'⌚', slot:'ring', rar:4, price:54, stats:{crit:0.03}, ability:'static', note:'Hits may arc lightning to nearby machines. Science.' },
@@ -211,6 +230,15 @@ const ITEMS = {
   blackcard:{ name:'Executive Wholesale Card', icon:'🃏', slot:'neck', rar:5, price:108, stats:{luck:0.15, pickup:40, priceMul:-0.12}, note:'Opens doors. Closes deals. Buys pallets.' },
   /* ---- utility on-hit ---- */
   peas:     { name:'Frozen Pea Compress', icon:'❄️', slot:'neck', rar:3, price:30, stats:{regen:1}, ability:'chill', note:'Your hits may chill machines to a crawl. Doctor approved.' },
+  /* ---- tier set pieces: Grillmaster's Regalia (rare) ---- */
+  gmtoque:  { name:'Grill Sergeant Toque', icon:'👨‍🍳', slot:'head', set:'grillmaster', rar:3, price:28, stats:{burgerMul:0.3, maxHP:6}, note:'The hat commands the flame.' },
+  gmapron:  { name:'Searmaster Apron', icon:'🥓', slot:'chest', set:'grillmaster', rar:3, price:29, stats:{maxHP:10, burgerMul:0.3}, note:'Stains arranged by year, like medals.' },
+  gmmitts:  { name:'Lava-Proof Mitts', icon:'🧯', slot:'ring', set:'grillmaster', rar:3, price:29, stats:{blastMul:0.1, armor:1}, note:'Rated to 900 degrees of confidence.' },
+  gmchimney:{ name:'Chimney Starter', icon:'🔥', slot:'trinket', set:'grillmaster', rar:3, price:29, stats:{blastMul:0.12, regen:1}, note:'Lighter fluid is for amateurs.' },
+  /* ---- tier set pieces: Thunder Dad (epic) ---- */
+  tdvisor:  { name:'Storm Visor', icon:'🌩️', slot:'head', set:'thunder', rar:4, price:50, stats:{crit:0.06, rangeMul:0.08}, note:'He can smell the front coming in.' },
+  tdgloves: { name:'Lineman Gloves', icon:'⚡', slot:'ring', set:'thunder', rar:4, price:52, stats:{rangedMul:0.12, atk:0.06}, note:'Insulated to 20,000 volts of opinion.' },
+  tdboots:  { name:'Grounded Galoshes', icon:'🌧️', slot:'feet', set:'thunder', rar:4, price:50, stats:{dodge:0.04, move:8}, note:'Lightning checks with him first.' },
   /* legendaries: from wave 5. two copies to empower one */
   gnome:    { name:'Garden Gnome of War', icon:'🗿', slot:'trinket', rar:5, price:95, stats:{}, ability:'gnome', note:'A gnome joins the fight. He has a staple gun and no fear.' },
   overtime: { name:'Overtime Pay', icon:'💼', slot:'trinket', rar:5, price:90, stats:{}, ability:'overtime', note:'+1 bolt every 3 seconds. The grind never stops.' },
