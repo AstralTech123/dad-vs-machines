@@ -69,6 +69,9 @@ async function simRun(champ,diff,maxWave){
     if(G.wave>maxWave) break;
     if(steps%4000===0) await new Promise(r=>setTimeout(r,0));
   }
+  /* release the bot's held keys, or a human taking over this tab walks
+     forever in whatever direction the bot last pressed */
+  keys['w']=keys['a']=keys['s']=keys['d']=false;
   const r={ champ, diff, waveReached:maxWaveReached, survived:!G.player.dead,
     level:G.level, kills:G.kills, hpLeft:Math.round(G.hp), gear:gearCount(G.active),
     weapons:G.weapons.length, simMinutes:Math.round(steps*dt/60*10)/10 };
