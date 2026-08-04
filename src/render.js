@@ -279,7 +279,11 @@ const CS_RIGHT=[['neck','NECK'],['ring1','RING 1'],['ring2','RING 2'],['trinket'
 function openCharSheet(pl){ CS.pl=pl; CS.sel=null; renderCharSheet(); show('charsheet'); sfx.click(); }
 function closeCharSheet(){ hide('charsheet'); CS.pl=null; CS.sel=null; }
 document.getElementById('csclose').addEventListener('click',()=>{ sfx.click(); closeCharSheet(); });
-function gearTypeTag(d){ return d.cls ? (d.cls==='blast'?'EXPLOSIVE':d.cls.toUpperCase())+' WEAPON' : SLOT_LABEL[slotsFor(d)[0]]; }
+function gearTypeTag(d){
+  if(d.shield) return 'SHIELD';
+  if(!d.cls) return SLOT_LABEL[slotsFor(d)[0]];
+  return (d.twoHand?'TWO-HANDED ':'')+(d.cls==='blast'?'EXPLOSIVE':d.cls.toUpperCase())+' WEAPON';
+}
 function csStatLines(d,emp){
   const m=emp?EMP_STATMUL:1;
   return Object.entries(d.stats||{}).map(([k,v])=>{
@@ -297,7 +301,8 @@ function csSlotDiv(sk,label){
     div.innerHTML=`<span class="ic">${ICONURL[g.key]?`<img src="${ICONURL[g.key]}" alt="">`:(d.icon||'❔')}</span>`+
       `<span><span class="lb">${label}${g.emp?' ⭐':''}</span><br><span class="nm">${d.name}</span></span>`;
   } else {
-    div.innerHTML=`<span class="ic" style="opacity:.5">·</span><span class="lb">${label}</span>`;
+    const blocked = sk==='w2' && pl.gear.w1 && WEAPONS[pl.gear.w1.key] && WEAPONS[pl.gear.w1.key].twoHand;
+    div.innerHTML=`<span class="ic" style="opacity:.5">${blocked?'🤝':'·'}</span><span class="lb">${label}${blocked?' (two-handed)':''}</span>`;
   }
   div.addEventListener('click',()=>{ CS.sel={loc:'slot',ref:sk}; renderCharSheet(); sfx.click(); });
   return div;
@@ -343,7 +348,7 @@ function renderCsDetail(){
   }
   const d=gearDef(g), r=RARITY[d.rar];
   const lines=csStatLines(d,g.emp).join(' · ');
-  const weapLine=d.cls?`DMG ${Math.round(d.dmg*(g.emp?EMP_DMG:1))} · every ${(d.cd*(g.emp?EMP_CD:1)).toFixed(2)}s${d.aoe?' · blast radius '+Math.round(d.aoe):''}${d.pierce?' · pierces '+(d.pierce>10?'everything':d.pierce):''}`:'';
+  const weapLine=(d.cls&&!d.shield)?`DMG ${Math.round(d.dmg*(g.emp?EMP_DMG:1))} · every ${(d.cd*(g.emp?EMP_CD:1)).toFixed(2)}s${d.aoe?' · blast radius '+Math.round(d.aoe):''}${d.pierce?' · pierces '+(d.pierce>10?'everything':d.pierce):''}`:'';
   const curse=g.curse?`<br><span style="color:#ff5a5f">CURSE: ${STAT_FMT[g.curse[0]]?STAT_FMT[g.curse[0]](g.curse[1]):g.curse[0]+' '+g.curse[1]}</span>`:'';
   const copies=g.emp?'⭐ EMPOWERED':`copies ${g.copies}/${EMPOWER_NEED[d.rar]} to empower`;
   const good=goodForChamp(pl.champ,d)?' · <span style="color:#9be06f">★ good for '+(CHAMPS[pl.champ].name)+'</span>':'';
@@ -422,7 +427,8 @@ function buildGuide(){
   ].map(r=>`<tr><td class="sv">${r[0]}</td><td>${r[1]}</td></tr>`).join('');
   const weapRows=Object.entries(WEAPONS).map(([k,w])=>
     `<tr><td>${gearIconHTML(k)}</td><td class="sv" style="color:${RARITY[w.rar].color}">${w.name}</td>`+
-    `<td class="g${w.cls}">${w.cls==='blast'?'EXPLOSIVE':w.cls.toUpperCase()}</td><td>${w.dmg} dmg / ${w.cd}s</td><td>${w.desc}</td></tr>`).join('');
+    `<td class="g${w.cls}">${gearTypeTag(w).replace(' WEAPON','')}</td>`+
+    `<td>${w.shield?fmtItemStats(w):w.dmg+' dmg / '+w.cd+'s'}</td><td>${w.desc}</td></tr>`).join('');
   const champRows=Object.entries(CHAMPS).map(([k,c])=>
     `<tr><td><img src="${champPortrait(k)}" alt=""></td><td class="sv">${c.name}</td>`+
     `<td>${c.role}</td><td>${c.perkDesc}</td></tr>`).join('');
@@ -457,7 +463,10 @@ function buildGuide(){
     and The Patriarch's Vestments.</p>
     <h3>WEAPONS</h3>
     <p>Two weapon slots. Weapons decide what you swing or shoot; your champ's class bonus
-    decides how hard. MELEE, RANGED, or EXPLOSIVE, always printed on the card.</p>
+    decides how hard. MELEE, RANGED, or EXPLOSIVE, always printed on the card. SHIELDS fill
+    a weapon slot with pure defense (sword and board, suburban edition), STAFFS cast blasts
+    and carry bonus stats, and TWO-HANDED monsters like Ol' Hickory fill both slots for
+    numbers a one-hander can only dream about.</p>
     <table>${weapRows}</table>
     <h3>THE YARD</h3>
     <p>The grill cooks healing burgers and DELIVERS them to whoever is hurting most, follow the green arrow ·
@@ -1101,6 +1110,14 @@ function drawIcon(c,key,s){
     c.fillStyle='#33383f'; c.beginPath(); c.ellipse(s*0.62,0,s*0.36,s*0.28,0,0,TAU); c.fill();
     c.strokeStyle='#bde8c4'; c.lineWidth=Math.max(1,s*0.07);
     c.beginPath(); c.moveTo(s*0.62,0); c.lineTo(s*1.05,-s*0.3); c.moveTo(s*0.62,0); c.lineTo(s*1.05,s*0.3); c.stroke();
+  } else {
+    /* newer weapons render as their emoji, in hand and everywhere else */
+    const d=WEAPONS[key];
+    if(d&&d.icon){
+      c.font='bold '+Math.round(s*1.9)+'px sans-serif';
+      c.textAlign='center'; c.textBaseline='middle';
+      c.fillText(d.icon,0,1);
+    }
   }
 }
 const ICONURL={};
@@ -1268,6 +1285,11 @@ function drawWeapons(){
   const P=G.player;
   G.weapons.forEach((w,i)=>{
     const def=WEAPONS[w.key];
+    if(def.shield){
+      /* the shield rides the off hand, always guarding */
+      ctx.save(); ctx.translate(P.x+(P.face<0?11:-11), P.y+2);
+      drawIcon(ctx,w.key,10); ctx.restore(); return;
+    }
     if(def.melee==='orbit'){
       const bx=w.bx||P.x, by=w.by||P.y;
       drawGlow('green',bx,by,20,0.35);

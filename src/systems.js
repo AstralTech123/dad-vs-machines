@@ -378,6 +378,7 @@ function updateWeapons(dt){
   const n=G.weapons.length;
   G.weapons.forEach((w,i)=>{
     const def=WEAPONS[w.key], ts=wpnStat(w);
+    if(def.shield) return; /* shields protect, they do not swing */
     w.cd -= dt*G.stats.atk;
     w.recoil=Math.max(0,w.recoil-dt*5);
     w.flash=Math.max(0,w.flash-dt);
@@ -1329,7 +1330,18 @@ function ownedInst(pl,key){
   return pl.pack.find(g=>g.key===key)||null;
 }
 function packFull(pl){ return pl.pack.length>=pl.packMax; }
-function openSlotFor(pl,def){ return slotsFor(def).find(sk=>!pl.gear[sk])||null; }
+/* wield rules: a two-hander needs BOTH hands free; nothing joins a worn
+   two-hander in the off hand */
+function openSlotFor(pl,def){
+  return slotsFor(def).find(sk=>{
+    if(pl.gear[sk]) return false;
+    if(def.twoHand && pl.gear.w2) return false;
+    if(sk==='w2' && pl.gear.w1 && WEAPONS[pl.gear.w1.key] && WEAPONS[pl.gear.w1.key].twoHand) return false;
+    return true;
+  })||null;
+}
+/* weapons that actually attack; shields do not count */
+function attackerCount(pl){ return pl.weapons.filter(w=>!WEAPONS[w.key].shield).length; }
 function gearCount(pl){
   let n=0; for(const [sk] of GEAR_SLOTS) if(pl.gear[sk]) n++;
   return n+pl.pack.length;
@@ -1411,24 +1423,35 @@ function empower(pl,inst){
   renderSlots();
 }
 function equipInto(pl,sk,inst){ pl.gear[sk]=inst; applyGearMods(inst,+1); syncWeapons(pl); refreshSets(pl); }
-/* pack -> body. if every fitting slot is taken, swaps with the first one */
+/* pack -> body. if every fitting slot is taken, swaps with the first one.
+   two-handers clear both hands into the pack first */
 function equipFromPack(pl,pi){
   const inst=pl.pack[pi]; if(!inst) return;
   const d=gearDef(inst);
   let sk=openSlotFor(pl,d);
-  pl.pack.splice(pi,1);
-  if(!sk){
-    sk=slotsFor(d)[0];
-    const out=pl.gear[sk];
-    pl.gear[sk]=null; applyGearMods(out,-1);
-    pl.pack.push(out);
+  if(sk){ pl.pack.splice(pi,1); equipInto(pl,sk,inst); return; }
+  if(d.twoHand){
+    const held=[pl.gear.w1,pl.gear.w2].filter(Boolean);
+    if(pl.pack.length-1+held.length > pl.packMax){ toast('Backpack too full to swap in the two-hander'); return; }
+    pl.pack.splice(pi,1);
+    for(const hx of ['w1','w2']){
+      const out=pl.gear[hx];
+      if(out){ pl.gear[hx]=null; applyGearMods(out,-1); pl.pack.push(out); }
+    }
+    equipInto(pl,'w1',inst);
+    return;
   }
+  sk=slotsFor(d)[0];
+  const out=pl.gear[sk];
+  pl.pack.splice(pi,1);
+  pl.gear[sk]=null; applyGearMods(out,-1);
+  pl.pack.push(out);
   equipInto(pl,sk,inst);
 }
 /* body -> pack */
 function unequipSlot(pl,sk){
   const inst=pl.gear[sk]; if(!inst) return;
-  if(inst.kind==='w' && pl.weapons.length<=1){ toast('Keep at least one weapon equipped'); return; }
+  if(inst.kind==='w' && !gearDef(inst).shield && attackerCount(pl)<=1){ toast('Keep at least one real weapon equipped'); return; }
   if(packFull(pl)){ toast('Backpack is full'); return; }
   pl.gear[sk]=null; applyGearMods(inst,-1); syncWeapons(pl); refreshSets(pl);
   pl.pack.push(inst);
@@ -1444,8 +1467,8 @@ function sellGear(pl,loc,ref){
     inst=pl.pack[i]; if(inst) pl.pack.splice(i,1);
   } else {
     inst=pl.gear[ref];
-    if(inst && inst.kind==='w' && pl.weapons.length<=1){
-      toast('Keep at least one weapon equipped');
+    if(inst && inst.kind==='w' && !gearDef(inst).shield && attackerCount(pl)<=1){
+      toast('Keep at least one real weapon equipped');
       saveActive(); if(prev) setActive(prev); return;
     }
     if(inst){ pl.gear[ref]=null; applyGearMods(inst,-1); syncWeapons(pl); refreshSets(pl); }
@@ -1626,12 +1649,15 @@ function offerCard(pl,pi,o,i,small){
   const iconHTML=gearIconHTML(o.key);
   const name=(o.curse?'Cursed ':'')+d.name;
   /* the type tag friends asked for: what it is and where it goes */
-  const slotTag=isW ? (d.cls==='blast'?'EXPLOSIVE':d.cls.toUpperCase())+' WEAPON'
-                    : SLOT_LABEL[slotsFor(d)[0]];
+  const slotTag=gearTypeTag(d);
   let desc;
-  if(isW){
+  if(isW && d.shield){
+    desc=d.desc+`<br><span style="color:#ece7db">${fmtItemStats(d)}</span>`;
+  } else if(isW){
     desc=d.desc+`<br><span style="color:#ece7db">DMG ${Math.round(d.dmg)} · every ${d.cd.toFixed(2)}s`
-      +(d.aoe?` · blast radius ${Math.round(d.aoe)}`:'')+(d.pierce?` · pierces ${d.pierce>10?'everything':d.pierce}`:'')+`</span>`;
+      +(d.aoe?` · blast radius ${Math.round(d.aoe)}`:'')+(d.pierce?` · pierces ${d.pierce>10?'everything':d.pierce}`:'')+`</span>`
+      +(d.stats&&Object.keys(d.stats).length?`<br><span style="color:#ece7db">${fmtItemStats(d)}</span>`:'')
+      +(d.twoHand?`<br><span style="color:#e0a34d">Fills BOTH weapon slots.</span>`:'');
   } else {
     const stats=fmtItemStats(d);
     desc=(stats?`<span style="color:#ece7db">${stats}</span><br>`:'')+(d.note||'');
@@ -1682,6 +1708,8 @@ function gearRowHTML(label,g,btns){
 function gearHTML(pl){
   const rows=GEAR_SLOTS.map(([sk,label])=>{
     const g=pl.gear[sk];
+    if(!g && sk==='w2' && pl.gear.w1 && WEAPONS[pl.gear.w1.key] && WEAPONS[pl.gear.w1.key].twoHand)
+      return `<div class="grow gempty"><span class="gslot">${label}</span><span class="gname">(two-handed)</span></div>`;
     const btns=g?`<span class="gbtns"><button class="unqbtn" data-sk="${sk}" title="Move to backpack">⇣</button>`+
       `<button class="sellbtn" data-loc="slot" data-ref="${sk}">🔩${sellValue(g)}</button></span>`:'';
     return gearRowHTML(label,g,btns);

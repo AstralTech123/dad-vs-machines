@@ -30,7 +30,7 @@ const SLOT_LABEL = { w1:'WEAPON', w2:'WEAPON', head:'HEAD', chest:'CHEST',
   legs:'LEGS', feet:'FEET', neck:'NECK', ring1:'RING', ring2:'RING', trinket:'TRINKET' };
 /* which equipment slots a definition can sit in */
 function slotsFor(def){
-  if(def.cls) return ['w1','w2'];
+  if(def.cls) return def.twoHand?['w1']:['w1','w2'];
   if(def.slot==='ring') return ['ring1','ring2'];
   return [def.slot];
 }
@@ -57,6 +57,38 @@ const WEAPONS = {
     dmg:22, cd:0.8, range:150, cone:0.9, knock:260, melee:'cone', price:52, pitch:0.5 },
   cannon:{ name:'T-Shirt Cannon', desc:'Free shirts. Devastating shirts.', cls:'blast', rar:5, icon:'🎉',
     dmg:34, cd:1.1, range:460, speed:380, pierce:0, knock:200, aoe:96, price:95, pitch:0.4, bcolor:'#ffd166' },
+  /* shields: no attack, pure defense in a weapon slot */
+  lid:{ name:'Trash Can Lid', desc:'A humble shield. Smells like victory.', cls:'shield', shield:true, rar:1, icon:'🗑️',
+    price:12, stats:{armor:2, maxHP:4} },
+  weberlid:{ name:'Weber Lid Aegis', desc:'Porcelain-coated protection.', cls:'shield', shield:true, rar:3, icon:'🛡️',
+    price:30, stats:{armor:3, thorns:3, maxHP:8} },
+  bylaws:{ name:'HOA Bylaws, Bound Edition', desc:'Nothing gets past the bylaws.', cls:'shield', shield:true, rar:5, icon:'📕',
+    price:100, stats:{armor:4, thorns:8, maxHP:15, dodge:0.03} },
+  /* bows and slings: the long-range garage arsenal */
+  slingshot:{ name:'Wrist Rocket', desc:'Gravel, acorns, regret.', cls:'ranged', rar:1, icon:'🎯',
+    dmg:6, cd:0.42, range:300, speed:500, pierce:0, knock:90, price:12, pitch:1.4, bcolor:'#c9b483' },
+  nerfxbow:{ name:'Nerf Crossbow', desc:'Foam-tipped. Fear-tipped.', cls:'ranged', rar:2, icon:'🏹',
+    dmg:9, cd:0.62, range:400, speed:520, pierce:1, knock:70, price:18, pitch:1.1, bcolor:'#ff9a4d' },
+  compound:{ name:'Compound Bow', desc:'From the garage rafters. Still deadly.', cls:'ranged', rar:3, icon:'🏹',
+    dmg:22, cd:0.95, range:560, speed:700, pierce:3, knock:120, price:31, pitch:0.8, bcolor:'#9be06f' },
+  ballista:{ name:'Deer Stand Crossbow', desc:'Scoped, racked, and patient.', cls:'ranged', rar:4, icon:'🏹',
+    dmg:38, cd:1.25, range:620, speed:820, pierce:8, knock:200, price:54, pitch:0.6, bcolor:'#f4fbff' },
+  /* staffs: casts for the support-and-boom crowd, stat lines included */
+  skimmer:{ name:'Pool Skimmer Staff', desc:'Sweeps leaves. Sweeps machines.', cls:'blast', rar:2, icon:'🥍',
+    dmg:10, cd:1.2, range:340, speed:330, aoe:60, knock:110, price:18, pitch:0.9, stats:{areaMul:0.05}, bcolor:'#7fc7e8' },
+  sprstaff:{ name:'Sprinkler Staff', desc:'Twin arcs of pressurized justice.', cls:'blast', rar:3, icon:'🌊',
+    dmg:14, cd:1.15, range:360, speed:340, aoe:70, count:2, spread:0.3, knock:120, price:31, pitch:0.85, stats:{areaMul:0.08}, bcolor:'#7fc7e8' },
+  grillscepter:{ name:'Grill Brush Scepter', desc:'Channel the sacred flame.', cls:'blast', rar:4, icon:'🪄',
+    dmg:20, cd:1.2, range:400, speed:360, aoe:85, knock:140, price:53, pitch:0.7, stats:{burgerMul:0.4, areaMul:0.1}, bcolor:'#ff9a4d' },
+  /* melee additions, including two-handers that fill BOTH weapon slots */
+  broom:{ name:'Push Broom', desc:'Wide sweeps. Zero tolerance.', cls:'melee', rar:2, icon:'🧹',
+    dmg:8, cd:0.55, range:170, cone:0.7, knock:180, melee:'cone', price:18, pitch:1.3 },
+  stopsign:{ name:'Yard Sale Sign', desc:'EVERYTHING MUST GO. Especially them.', cls:'melee', rar:3, icon:'🪧', twoHand:true,
+    dmg:26, cd:0.9, range:165, cone:1.1, knock:300, melee:'cone', price:32, pitch:0.6 },
+  potato:{ name:'Potato Cannon', desc:'PVC. Hairspray. Consequences.', cls:'blast', rar:4, icon:'🥔', twoHand:true,
+    dmg:40, cd:1.6, range:480, speed:340, aoe:110, knock:260, price:55, pitch:0.5, bcolor:'#d9c58f' },
+  hickory:{ name:'Ol\' Hickory', desc:'The axe behind the water heater. It remembers.', cls:'melee', rar:5, icon:'🪓', twoHand:true,
+    dmg:55, cd:1.0, range:180, cone:1.2, knock:350, melee:'cone', price:98, pitch:0.4 },
 };
 /* items: rar 1 COMMON .. 5 LEGENDARY. stats are flat deltas like champ mods.
    ability items do something stats cannot. Legendaries appear once per run. */
@@ -462,7 +494,7 @@ const YARD_UPGRADES = {
     oname:'Spill Solvent', odescs:['Machines slowed much harder in the spill','Machines corrode: 4 damage per second in the spill'] },
 };
 function yardName(k){ const u=YARD_UPGRADES[k]; return (MAPKEY==='office'&&u.oname)?u.oname:u.name; }
-function champCanUse(cls){ const c=CHAMPS[(G&&G.champ)||'dad']||CHAMPS.dad; return !c.wonly||c.wonly.includes(cls); }
+function champCanUse(cls){ if(cls==='shield') return true; const c=CHAMPS[(G&&G.champ)||'dad']||CHAMPS.dad; return !c.wonly||c.wonly.includes(cls); }
 function yardDescs(k){ const u=YARD_UPGRADES[k]; return (MAPKEY==='office'&&u.odescs)?u.odescs:u.descs; }
 
 /* ---------------- enemy traits (affixes from wave 6 on) ---------------- */
