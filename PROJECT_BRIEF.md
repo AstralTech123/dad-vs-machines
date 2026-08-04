@@ -115,9 +115,32 @@ Phase 2a, entities first (biggest visual payoff), file names and prompts:
 - boss.png: massive rectangular AI mainframe robot, purple core, antenna
   array, angry orange eyes, AGI printed on a chest plate
 
-Phase 2b, props later (floor bake will composite them): grill.png, shed.png,
-pool.png, tramp.png, kiddie.png, car.png, hedge.png, tree.png, flamingo.png,
-gnome.png. Same style line. Do these only after entities look right in game.
+NEW MACHINES (2026-08-03 wave), same style line as the originals:
+- scoot.png: teal electric kick scooter robot, headlight eye, leaning forward
+  mid-charge, slightly menacing delivery energy
+- thermo.png: round smart thermostat robot, dark dial face with a glowing
+  orange 88 degree readout, thin silver ring bezel
+- frido.png: tall stainless smart fridge robot, two doors, blue ice dispenser
+  glow, one small angry red camera eye on the lower door
+- vend.png: vending machine elite, dark red cabinet with gold trim, glowing
+  snack rows behind glass, one orange targeting eye, subtle gold aura
+- courier.png: round golden delivery robot with a brown bolt sack on its
+  back, big friendly dollar sign, built to flee
+- subs.png: boss, a looming envelope-and-invoice monster robot, SUBSCRIBE
+  stamped on it, red accents
+- cloud.png: boss, a dark storm cloud server with rack lights inside and rain
+  of cables, blue-white core
+
+THE NEIGHBORS (optional but transformative; drawn at 68px in game, generate
+256px): karen.png, coach.png, itdad.png, grill.png, coupon.png, yoga.png,
+ned.png, hank.png, brenda.png, gus.png. Match each champ's look from the
+champ select portraits (clipboard, whistle, IT badge, apron, coupons, yoga
+gear, binoculars, tool belt, book, marine bearing).
+
+Phase 2b, props (wired and live, drop them any time): bbq.png (the grill
+prop; the name grill.png belongs to Grill Dad), shed.png, pool.png, car.png,
+tramp.png, flamingo.png, gnome.png. The floor bake composites the first four
+automatically; tramp and flamingo animate live. Same style line.
 
 Practical tips for Austin: generate on a plain background and remove it, keep
 one chat or session per batch so the style stays consistent, and redo any

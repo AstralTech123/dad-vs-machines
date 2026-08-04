@@ -869,6 +869,34 @@ function buildFloorYard(){
     f.ellipse(rand(300,ARENA_W-300),rand(300,ARENA_H-300),rand(50,90),rand(30,55),rand(0,TAU),0,TAU);
     f.fill();
   }
+  /* the lawn is grass, not paint: blade tufts, clover patches, a few
+     dandelions and daisies. baked once, free at runtime */
+  for(let i=0;i<2200;i++){
+    const gx=rand(0,ARENA_W), gy=rand(0,ARENA_H);
+    f.strokeStyle='rgba('+Math.round(70+rand(0,50))+','+Math.round(110+rand(0,50))+','+Math.round(50+rand(0,35))+','+rand(0.18,0.38)+')';
+    f.lineWidth=rand(1,1.8);
+    f.beginPath(); f.moveTo(gx,gy);
+    f.quadraticCurveTo(gx+rand(-2,2), gy-rand(2,5), gx+rand(-3,3), gy-rand(4,9));
+    f.stroke();
+  }
+  for(let i=0;i<30;i++){
+    const cx2=rand(60,ARENA_W-60), cy2=rand(60,ARENA_H-60), n=6+Math.floor(rand(0,9));
+    for(let k=0;k<n;k++){
+      f.fillStyle='rgba(72,112,56,'+rand(0.25,0.45)+')';
+      f.beginPath(); f.arc(cx2+rand(-28,28),cy2+rand(-20,20),rand(2,4.2),0,TAU); f.fill();
+    }
+  }
+  for(let i=0;i<46;i++){
+    const fx=rand(60,ARENA_W-60), fy=rand(60,ARENA_H-60);
+    const daisy=Math.random()<0.45;
+    if(daisy){
+      f.fillStyle='rgba(244,238,218,0.85)';
+      for(let p=0;p<5;p++){ const a=p/5*TAU; f.beginPath(); f.ellipse(fx+Math.cos(a)*2.6,fy+Math.sin(a)*2.6,1.8,1.1,a,0,TAU); f.fill(); }
+      f.fillStyle='#ffd166'; f.beginPath(); f.arc(fx,fy,1.4,0,TAU); f.fill();
+    } else {
+      f.fillStyle='rgba(255,209,102,0.9)'; f.beginPath(); f.arc(fx,fy,2.4,0,TAU); f.fill();
+    }
+  }
   function sign(x,y,txt){
     f.fillStyle='#4a3520'; f.fillRect(x-2,y-4,4,16);
     const w2=txt.length*6.4+16;
@@ -1043,6 +1071,17 @@ function buildFloorYard(){
   [[0,0],[ARENA_W-16,0],[0,ARENA_H-16],[ARENA_W-16,ARENA_H-16]].forEach(p=>f.fillRect(p[0],p[1],16,16));
   f.strokeStyle='rgba(0,0,0,0.22)'; f.lineWidth=30;
   f.strokeRect(30,30,ARENA_W-60,ARENA_H-60);
+  /* PNG art overlays: drop a file in assets/ and it paints over the vector
+     prop at the same footprint (bbq.png, shed.png, pool.png, car.png) */
+  const ov=(name,x,y,w,h)=>{ const s=sprite(name); if(s) f.drawImage(s,x,y,w,h); };
+  ov('shed', 2066, 96, 408, 350);
+  ov('pool', 1995, 1395, 330, 330);
+  ov('bbq',  336, 198, 88, 100);
+  ov('car',  232, 1596, 286, 160);
+  /* baked edge tone pulls the eye toward the middle of the yard */
+  const eg=f.createRadialGradient(ARENA_W/2,ARENA_H/2,760,ARENA_W/2,ARENA_H/2,1650);
+  eg.addColorStop(0,'rgba(0,0,0,0)'); eg.addColorStop(1,'rgba(10,14,8,0.42)');
+  f.fillStyle=eg; f.fillRect(0,0,ARENA_W,ARENA_H);
   return c;
 }
 let FLOOR = buildFloor();
@@ -1350,7 +1389,14 @@ function drawEnemy(e){
     ctx.fillText(T.name,0,-r-16);
   }
   if(e.giant) ctx.scale(1.22,1.22);
-  if(e.key==='courier'){
+  /* PNG sprite art wins over vector when present; the common tail below
+     still adds the elite crown, HP bar, and hit flash */
+  const SPR=sprite(e.key);
+  if(SPR){
+    ctx.translate(0,bob*0.5);
+    const sz=e.def.r*2.7;
+    ctx.drawImage(SPR,-sz/2,-sz*0.62,sz,sz);
+  } else if(e.key==='courier'){
     ctx.translate(0,bob);
     drawGlow('gold',0,0,r*2,0.55);
     ctx.fillStyle='#d4af37'; ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.fill();
@@ -1702,6 +1748,14 @@ function drawPickup(p){
   }
 }
 function drawTramp(){
+  if(MAPKEY!=='office'){
+    const S=sprite('tramp');
+    if(S){
+      const sq=1-TRAMP.anim*0.1;
+      ctx.drawImage(S, TRAMP.x-98, TRAMP.y-98*sq, 196, 196*sq);
+      return;
+    }
+  }
   if(MAPKEY==='office'){
     // rolling office chair: same launch mechanics, corporate energy
     ctx.save(); ctx.translate(TRAMP.x,TRAMP.y);
@@ -1755,6 +1809,8 @@ function drawFlams(){
   for(const fl of FLAM){
     ctx.save(); ctx.translate(fl.x,fl.y);
     ctx.rotate(fl.up?0 : fl.f*1.35*fl.dir);
+    const S=sprite('flamingo');
+    if(S){ ctx.drawImage(S,-26,-46,52,78); ctx.restore(); continue; }
     ctx.strokeStyle='#2a2d26'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(-4,0); ctx.lineTo(-5,26); ctx.moveTo(4,0); ctx.lineTo(6,26); ctx.stroke();
     ctx.fillStyle='#ef7fa6'; ctx.beginPath(); ctx.ellipse(0,-6,13,9,0,0,TAU); ctx.fill();
