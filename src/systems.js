@@ -481,8 +481,28 @@ function hitEnemy(e, dmg, ang, knock, crit){
   floatText(e.x+rand(-8,8), e.y-e.def.r-10, final, blocked?'#9aa2ae':(crit?'#ffd166':'#ffffff'), crit);
   if(blocked) sfx.tink(); else sfx.hit();
   for(let k=0;k<3;k++) spawnPart(e.x,e.y, ang+rand(-0.7,0.7), rand(80,220), 0.25, blocked?'#9ecbff':'#ffd166', 2);
+  /* on-hit gear procs. PROCLOCK keeps arcs from chaining off themselves */
+  if(!PROCLOCK && G.abil){
+    if(G.abil.static>0 && Math.random()<0.12*G.abil.static){
+      PROCLOCK=true;
+      let arcs=0;
+      for(const o of G.enemies){
+        if(o===e || arcs>=2*G.abil.static) continue;
+        if(dist2(e.x,e.y,o.x,o.y)<140*140){
+          arcs++;
+          spawnPart(o.x,o.y,rand(0,TAU),rand(40,120),0.2,'#8fd8ff',2);
+          hitEnemy(o, 6, Math.atan2(o.y-e.y,o.x-e.x), 60, false);
+        }
+      }
+      PROCLOCK=false;
+    }
+    if(G.abil.burn>0 && !e.def.boss && Math.random()<0.15*G.abil.burn){
+      e.burnT=2; e.burnDps=3*G.abil.burn;
+    }
+  }
   if(e.hp<=0) killEnemy(e);
 }
+let PROCLOCK=false;
 function gainXP(n){
   G.xp+=n;
   while(G.xp>=xpNeed(G.level)){
@@ -534,15 +554,29 @@ function killEnemy(e){
     for(let m=0;m<loot;m++) G.pickups.push({ x:e.x+rand(-16,16), y:e.y+rand(-16,16),
       vx:rand(-120,120), vy:rand(-140,-20), mag:false, t:0, kind:'bolt', val:1 });
     G.pickups.push({ x:e.x, y:e.y, vx:rand(-40,40), vy:-60, mag:false, t:0, kind:'burger', val:15 });
-    banner('ELITE SCRAPPED','+'+loot+' BOLTS AND A BURGER');
+    const gearDrop = Math.random() < 0.4+0.3*G.stats.luck;
+    if(gearDrop) dropGear(e.x,e.y,0);
+    banner('ELITE SCRAPPED','+'+loot+' BOLTS'+(gearDrop?' AND GEAR':' AND A BURGER'));
     G.cam.shake=18;
   } else {
     const mats = e.child?0:Math.round(e.def.mats*DF().loot*(e.trait?1.5:1)*(1+0.25*(G.players.length-1)));
     for(let m=0;m<mats;m++) G.pickups.push({ x:e.x+rand(-10,10), y:e.y+rand(-10,10),
       vx:rand(-70,70), vy:rand(-90,-20), mag:false, t:0, kind:'bolt', val:1 });
   }
-  if(e.def.boss){ onBossDown(); }
+  if(e.def.boss){ dropGear(e.x,e.y,3); onBossDown(); }
   updateHUD();
+}
+/* a mystery box drops: rarity rolls with wave and luck, bosses floor at RARE.
+   what is inside stays secret until somebody picks it up */
+function dropGear(x,y,minRar){
+  let rar=rarityRoll();
+  if(minRar) rar=Math.max(rar,minRar);
+  const pool=[
+    ...Object.keys(WEAPONS).filter(k=>WEAPONS[k].rar===rar),
+    ...Object.keys(ITEMS).filter(k=>ITEMS[k].rar===rar),
+  ];
+  if(!pool.length) return;
+  G.pickups.push({ x, y, vx:rand(-60,60), vy:rand(-90,-20), mag:false, t:0, kind:'gear', key:pick(pool) });
 }
 function droneBlast(e){
   const P=G.player;
@@ -587,6 +621,12 @@ function updateEnemies(dt){
       }
     }
     if(zapped) continue;
+    if(e.burnT>0){
+      e.burnT-=dt;
+      e.hp-=e.burnDps*dt;
+      if(Math.random()<dt*8) spawnPart(e.x,e.y,rand(0,TAU),rand(10,50),0.3,'#ff9a4d',2);
+      if(e.hp<=0){ killEnemy(e); continue; }
+    }
     let auraF=1;
     for(const q of G.players){
       if(!q.body.dead && q.stats.auraSlow && dist2(e.x,e.y,q.body.x,q.body.y)<190*190)
@@ -1074,6 +1114,32 @@ function updatePickups(dt){
           for(let k=0;k<8;k++) spawnPart(p.x,p.y,rand(0,TAU),rand(60,200),0.4,'#c9a06a',3);
           sfx.buy();
         }
+        else if(p.kind==='gear'){
+          const d=defByKey(p.key);
+          const owned=ownedInst(tp,p.key);
+          if(d.cls && !champCanUse(d.cls)){
+            const v=Math.max(2,Math.round(d.price*0.4));
+            G.mats+=v; G.totalMats+=v;
+            floatText(P.x,P.y-44,d.name+' scrapped: +'+v+' 🔩','#ffd166',true);
+          } else if(owned){
+            owned.copies++;
+            const need=EMPOWER_NEED[d.rar];
+            if(!owned.emp && owned.copies>=need) empower(tp,owned);
+            else floatText(P.x,P.y-44,d.name+' copy '+Math.min(owned.copies,need)+'/'+need,'#c9c2b4',true);
+          } else {
+            const inst=d.cls?mkWeapon(p.key):mkGearItem(p.key);
+            const sk=openSlotFor(tp,d);
+            if(sk){ equipInto(tp,sk,inst); floatText(P.x,P.y-44,'EQUIPPED '+d.name+'!',RARITY[d.rar].color,true); }
+            else if(!packFull(tp)){ tp.pack.push(inst); floatText(P.x,P.y-44,d.name+' → backpack',RARITY[d.rar].color,true); }
+            else {
+              const v=Math.max(2,Math.round(d.price*0.4));
+              G.mats+=v; G.totalMats+=v;
+              floatText(P.x,P.y-44,'Backpack full: +'+v+' 🔩','#ffd166',true);
+            }
+            if(d.rar===5){ G.hasLegend=true; sfx.legendary(); }
+          }
+          sfx.buy(); renderSlots();
+        }
         saveActive(); if(prev&&prev!==tp) setActive(prev);
         updateHUD(); continue;
       }
@@ -1254,6 +1320,11 @@ function applyAbility(ab,inst,dir){
     if(dir>0 && !inst.used){ inst.used=true; G.mats+=70; G.totalMats+=70;
       floatText(G.player.x,G.player.y-50,'+70 BOLTS','#ffd166',true); }
     G.stats.priceMul+=0.1*dir;
+  } else if(ab==='bigpack'){
+    if(dir>0 && !inst.used){
+      inst.used=true; G.active.packMax+=4;
+      toast('🎒 Backpack expanded to '+G.active.packMax+' slots for the run');
+    }
   } else if(ab==='gnome'){
     G.abil.gnome=(G.abil.gnome||0)+n;
     if(dir>0){ for(let k=0;k<n;k++) G.gnomes.push({ x:G.player.x+rand(-50,50), y:G.player.y+rand(-50,50), cd:0, own:G.active }); }

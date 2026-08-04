@@ -455,8 +455,8 @@ function buildGuide(){
     flamingos tip over. The yard is on your side, use it.</p>
     <h3>THE MACHINES</h3>
     <p>Eleven types, from swarming Chatbots to shielded Firewall bots and healing IT Support.
-    Golden elites roam with big loot, follow the edge arrows to find them. Airdrop crates land
-    on a flare. From wave 6, machines can spawn with traits: TURBO, ARMORED, VOLATILE, GIANT,
+    Golden elites roam with big loot and often drop a mystery gear box, follow the edge arrows
+    to find them. Bosses always drop RARE or better gear. Airdrop crates land on a flare. From wave 6, machines can spawn with traits: TURBO, ARMORED, VOLATILE, GIANT,
     LEECH. They glow, they are labeled, and they pay 50% extra loot and XP. Bosses arrive when
     the clock hits zero on waves 5, 10, 15, and 20, and beat wave 20 to unlock the endless shift.</p>
     <h3>THE NEIGHBORS</h3>
@@ -1604,6 +1604,19 @@ function drawPickup(p){
     ctx.fillStyle='#e0d6b8'; ctx.fillRect(-2,-9,4,19); ctx.fillRect(-12,-2,24,4);
     ctx.strokeStyle='#5a3a1e'; ctx.lineWidth=1.5;
     roundedRectPath(ctx,-12,-9,24,19,2); ctx.stroke();
+    ctx.restore();
+  } else if(p.kind==='gear'){
+    /* the mystery box: rarity-colored, contents secret until grabbed */
+    const d=defByKey(p.key), col=RARITY[d.rar].color;
+    const bb=Math.sin(AT*4+p.t)*2.5;
+    drawGlow(d.rar>=4?'gold':'green',p.x,p.y+bb,17,0.5);
+    ctx.save(); ctx.translate(p.x,p.y+bb);
+    ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0,13,13,4,0,0,TAU); ctx.fill();
+    ctx.fillStyle='#22271f'; roundedRectPath(ctx,-11,-11,22,22,5); ctx.fill();
+    ctx.strokeStyle=col; ctx.lineWidth=2.2;
+    roundedRectPath(ctx,-11,-11,22,22,5); ctx.stroke();
+    ctx.fillStyle=col; ctx.font='bold 13px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('?',0,1);
     ctx.restore();
   }
 }
