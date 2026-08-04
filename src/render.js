@@ -182,6 +182,7 @@ function show(id){ document.getElementById(id).classList.remove('hidden'); }
 function hide(id){ document.getElementById(id).classList.add('hidden'); }
 function showDead(){
   G.mode='dead';
+  if(typeof clearSave==='function') clearSave();
   document.getElementById('deadstats').innerHTML=
     `Made it to <b>wave ${G.wave}</b> · scrapped <b>${G.kills}</b> machines · collected <b>${G.totalMats}</b> bolts<br>`+
     `SCORE: <b>${runScore()}</b> on ${DIFFS[G.diff||2].name}<br>The machines have added this run to their training data.`;
@@ -190,6 +191,7 @@ function showDead(){
 }
 function showWin(){
   G.mode='win';
+  if(typeof clearSave==='function') clearSave();
   document.getElementById('winstats').innerHTML=
     `AGI-PRIME unplugged on <b>wave ${FINAL_WAVE}</b> · <b>${G.kills}</b> machines scrapped · <b>${G.totalMats}</b> bolts collected<br>`+
     `SCORE: <b>${runScore()}</b> on ${DIFFS[G.diff||2].name}<br>He clocked out at 5:00 PM sharp and did not think about it again.`;

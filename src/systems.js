@@ -1812,6 +1812,8 @@ function renderShop(){
     : G.shop.favorUsed ? '📞 Nobody else is home' : '📞 CALL A NEIGHBOR (free)';
   const yp2=document.getElementById('yardpanel');
   yp2.classList.toggle('afford', Object.keys(YARD_UPGRADES).some(k=>{ const c=yardCost(k); return c!==null && G.mats>=c; }));
+  /* the shop is the checkpoint: every render captures the latest decisions */
+  if(typeof saveRun==='function') saveRun();
 }
 document.getElementById('rerollbtn').addEventListener('click',()=>rerollFor(G.players[0]));
 document.getElementById('gowave').addEventListener('click',()=>{ sfx.click(); startWave(G.wave+1); });

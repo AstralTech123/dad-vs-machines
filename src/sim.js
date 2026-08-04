@@ -55,6 +55,7 @@ function simTick(dt){
 }
 async function simRun(champ,diff,maxWave){
   maxWave=maxWave||20;
+  window._SIMMING=true; /* never let a dev sim clobber a real save */
   selChamp=champ; selDiff=diff;
   if(MAPKEY!=='yard'){ MAPKEY='yard'; FLOOR=buildFloor(); }
   newGame(); G.diff=diff; applyChamp(champ); startWave(1);
@@ -72,6 +73,7 @@ async function simRun(champ,diff,maxWave){
   /* release the bot's held keys, or a human taking over this tab walks
      forever in whatever direction the bot last pressed */
   keys['w']=keys['a']=keys['s']=keys['d']=false;
+  window._SIMMING=false;
   const r={ champ, diff, waveReached:maxWaveReached, survived:!G.player.dead,
     level:G.level, kills:G.kills, hpLeft:Math.round(G.hp), gear:gearCount(G.active),
     weapons:G.weapons.length, simMinutes:Math.round(steps*dt/60*10)/10 };
